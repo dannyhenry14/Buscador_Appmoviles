@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.example.buscador.ui.theme.BuscadorTheme
-import com.example.buscador.view.MapScreen // Importamos el mapa en lugar del login
+import com.example.buscador.ui.theme.view.MapScreen // Importamos el mapa en lugar del login
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
