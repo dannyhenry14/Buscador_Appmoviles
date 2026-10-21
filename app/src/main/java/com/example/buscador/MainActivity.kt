@@ -4,14 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import com.example.buscador.navigation.BuscadorNavHost
 import com.example.buscador.ui.theme.BuscadorTheme
-import com.example.buscador.view.MapScreen // Importamos el mapa en lugar del login
 
+/**
+ * Única Activity de la aplicación (Single-Activity Architecture).
+ *
+ * No contiene pantallas propias: delega todo el contenido a [BuscadorNavHost],
+ * que resuelve el grafo de navegación. Cada pantalla maneja sus propios insets
+ * mediante Scaffold, por eso aquí solo se aplica fillMaxSize.
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,12 +23,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BuscadorTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
-                        MapScreen()
-
-                    }
-                }
+                BuscadorNavHost(modifier = Modifier.fillMaxSize())
             }
         }
     }
