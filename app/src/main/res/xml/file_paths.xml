@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rutas que FileProvider comparte con la app de cámara.
+
+    Solo se expone la carpeta privada de fotos de perfil (filesDir/fotos_perfil):
+    la cámara escribe allí la captura y la app conserva el archivo, por lo que la
+    URI guardada en Room sigue siendo válida después de reiniciar el proceso.
+-->
+<paths>
+    <files-path
+        name="fotos_perfil"
+        path="fotos_perfil/" />
+</paths>

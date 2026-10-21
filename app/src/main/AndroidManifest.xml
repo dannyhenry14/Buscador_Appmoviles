@@ -2,6 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+        Permiso de cámara para "Editar perfil". Se solicita en tiempo de ejecución
+        con ActivityResultContracts.RequestPermission antes de abrir TakePicture.
+        La galería usa Photo Picker y no necesita permisos de almacenamiento.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- La app sigue siendo instalable en equipos sin cámara (solo se desactiva la captura). -->
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
     <application
         android:name=".BuscadorApplication"
         android:allowBackup="true"
@@ -24,6 +36,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Expone únicamente filesDir/fotos_perfil (ver res/xml/file_paths.xml) para que
+            la app de cámara pueda escribir la captura sin permisos de almacenamiento.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

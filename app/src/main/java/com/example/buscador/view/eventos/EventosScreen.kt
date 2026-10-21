@@ -14,12 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.example.buscador.model.Evento
 import com.example.buscador.ui.theme.DarkGreen
 import com.example.buscador.ui.theme.LightGrayMap
+import com.example.buscador.view.components.BarraSuperiorSeccion
 
 /**
  * Pantalla Home de la aplicación: listado de eventos de CENAMAD.
@@ -38,40 +35,28 @@ import com.example.buscador.ui.theme.LightGrayMap
  * Composable "tonto": no conoce ViewModel ni navegación, solo recibe datos
  * y callbacks. Así se puede previsualizar y testear de forma aislada.
  *
+ * La navegación entre secciones vive en el menú lateral: esta pantalla solo
+ * expone [onAbrirMenu] (botón hamburguesa) y el detalle de evento como
+ * flujo interno de la sección.
+ *
  * @param listaEventos Eventos observados desde [com.example.buscador.viewmodel.EventosViewModel].
  * @param onAbrirDetalleEvento Navega al detalle del evento seleccionado.
- * @param onAbrirSobreNosotros Navega a la pantalla institucional.
- * @param onAbrirMiPerfil Navega al perfil del usuario.
+ * @param onAbrirMenu Abre el menú lateral de navegación entre secciones.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventosScreen(
     listaEventos: List<Evento>,
     onAbrirDetalleEvento: (idEvento: Long) -> Unit,
-    onAbrirSobreNosotros: () -> Unit,
-    onAbrirMiPerfil: () -> Unit,
+    onAbrirMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
         containerColor = LightGrayMap,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = "Eventos CENAMAD", fontWeight = FontWeight.Bold)
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkGreen,
-                    titleContentColor = Color.White
-                ),
-                actions = {
-                    TextButton(onClick = onAbrirSobreNosotros) {
-                        Text(text = "Nosotros", color = Color.White)
-                    }
-                    TextButton(onClick = onAbrirMiPerfil) {
-                        Text(text = "Mi perfil", color = Color.White)
-                    }
-                }
+            BarraSuperiorSeccion(
+                titulo = "Eventos",
+                onAbrirMenu = onAbrirMenu
             )
         }
     ) { paddingInterno ->

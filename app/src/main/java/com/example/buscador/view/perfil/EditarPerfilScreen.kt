@@ -1,6 +1,8 @@
 package com.example.buscador.view.perfil
 
-import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -8,18 +10,25 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +42,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +53,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.example.buscador.data.local.almacenamiento.AlmacenFotosPerfil
 import com.example.buscador.model.Usuario
 import com.example.buscador.model.ValidadorPerfil
 import com.example.buscador.ui.theme.DarkGreen
@@ -50,6 +63,7 @@ import com.example.buscador.ui.theme.YellowDuoc
 import com.example.buscador.view.components.BotonVolver
 import com.example.buscador.view.components.FotoPerfil
 import com.example.buscador.viewmodel.EstadoEdicionPerfil
+import kotlinx.coroutines.launch
 
 /**
  * Formulario de edición del perfil.
@@ -64,8 +78,12 @@ import com.example.buscador.viewmodel.EstadoEdicionPerfil
  * El formulario no decide si corresponde INSERT o UPDATE: solo entrega los datos
  * y el ViewModel resuelve la fila (nueva o existente) contra la base local.
  *
- * La foto se elige con el selector del sistema (Photo Picker), por lo que
- * no se requieren permisos de almacenamiento en el manifiesto.
+ * La foto se obtiene por dos vías, ambas resueltas con ActivityResultContracts:
+ * - Cámara: se pide el permiso CAMERA en tiempo de ejecución (RequestPermission) y
+ *   se abre la app de cámara con TakePicture sobre una URI de FileProvider.
+ * - Galería: Photo Picker (PickVisualMedia), que no requiere permisos de almacenamiento.
+ * En ambos casos la imagen queda en el almacenamiento privado de la app y a Room solo
+ * viaja la URI resultante, por lo que la foto sigue disponible tras reiniciar.
  *
  * @param usuarioActual Usuario persistido o null si aún no existe.
  * @param estaCargando `true` mientras Room no entrega la primera lectura.
@@ -93,16 +111,29 @@ fun EditarPerfilScreen(
     modifier: Modifier = Modifier
 ) {
     val contexto = LocalContext.current
+    val alcanceCorrutinas = rememberCoroutineScope()
+    val almacenFotos = remember(contexto) { AlmacenFotosPerfil(contexto) }
 
-    var nombreCompleto by remember { mutableStateOf("") }
-    var correoElectronico by remember { mutableStateOf("") }
-    var biografia by remember { mutableStateOf("") }
-    var uriFotoPerfil by remember { mutableStateOf<String?>(null) }
-    var formularioInicializado by remember { mutableStateOf(false) }
-    var guardadoSolicitado by remember { mutableStateOf(false) }
+    // rememberSaveable: el intent de cámara puede recrear la Activity (rotación o
+    // muerte del proceso) y el formulario debe sobrevivir a ese regreso.
+    var nombreCompleto by rememberSaveable { mutableStateOf("") }
+    var correoElectronico by rememberSaveable { mutableStateOf("") }
+    var biografia by rememberSaveable { mutableStateOf("") }
+    var uriFotoPerfil by rememberSaveable { mutableStateOf<String?>(null) }
+    var uriFotoOriginal by rememberSaveable { mutableStateOf<String?>(null) }
+    var uriCamaraPendiente by rememberSaveable { mutableStateOf<String?>(null) }
+    var formularioInicializado by rememberSaveable { mutableStateOf(false) }
+    var guardadoSolicitado by rememberSaveable { mutableStateOf(false) }
+
+    // Estados efímeros: no tiene sentido restaurarlos después de un reinicio.
+    var procesandoFoto by remember { mutableStateOf(false) }
+    var mensajeFoto by remember { mutableStateOf<String?>(null) }
 
     val estaGuardando = estadoEdicion is EstadoEdicionPerfil.Guardando
     val mensajeError = (estadoEdicion as? EstadoEdicionPerfil.Error)?.mensaje
+    val dispositivoTieneCamara = remember(contexto) {
+        contexto.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+    }
 
     LaunchedEffect(Unit) {
         // Descarta el resultado de una sesión de edición anterior: si el usuario
@@ -114,6 +145,11 @@ fun EditarPerfilScreen(
     // esta pantalla; así se evitan navegaciones fantasma al reingresar.
     LaunchedEffect(estadoEdicion) {
         if (guardadoSolicitado && estadoEdicion is EstadoEdicionPerfil.Guardado) {
+            // Room ya confirmó la escritura: la foto anterior quedó huérfana y se
+            // libera aquí, nunca antes (si el guardado falla, la fila la sigue usando).
+            if (uriFotoOriginal != null && uriFotoOriginal != uriFotoPerfil) {
+                almacenFotos.eliminarFotoSiEsPropia(uriFotoOriginal)
+            }
             onGuardadoExitoso()
         }
     }
@@ -133,25 +169,89 @@ fun EditarPerfilScreen(
             correoElectronico = usuario.correoElectronico
             biografia = usuario.biografia
             uriFotoPerfil = usuario.uriFotoPerfil
+            uriFotoOriginal = usuario.uriFotoPerfil
             formularioInicializado = true
         }
     }
 
-    val selectorFotoPerfil = rememberLauncherForActivityResult(
+    // Aplica una foto recién elegida y libera la copia intermedia si ya nadie la usa.
+    // La foto original (la que está en Room) no se toca hasta que el guardado confirme.
+    fun aplicarFotoSeleccionada(uriNueva: String) {
+        val uriAnterior = uriFotoPerfil
+        uriFotoPerfil = uriNueva
+        if (uriAnterior != null && uriAnterior != uriNueva && uriAnterior != uriFotoOriginal) {
+            almacenFotos.eliminarFotoSiEsPropia(uriAnterior)
+        }
+    }
+
+    // TakePicture devuelve true solo si la app de cámara escribió sobre la URI que le
+    // entregamos; si el usuario cancela, se borra el archivo vacío de destino.
+    val lanzadorCamara = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { capturaExitosa ->
+        val uriCaptura = uriCamaraPendiente
+        uriCamaraPendiente = null
+        if (capturaExitosa && uriCaptura != null) {
+            aplicarFotoSeleccionada(uriCaptura)
+        } else {
+            almacenFotos.eliminarFotoSiEsPropia(uriCaptura)
+        }
+    }
+
+    // Crea el archivo destino en el almacenamiento propio y abre la cámara del sistema.
+    fun abrirCamara() {
+        val uriDestino = try {
+            almacenFotos.crearUriParaCamara()
+        } catch (error: Exception) {
+            // FileProvider sin ruta configurada: no hay dónde escribir la captura.
+            Log.w(ETIQUETA_LOG, "No se pudo crear la URI de la captura.", error)
+            mensajeFoto = MENSAJE_CAMARA_NO_DISPONIBLE
+            return
+        }
+
+        uriCamaraPendiente = uriDestino.toString()
+        mensajeFoto = null
+        try {
+            lanzadorCamara.launch(uriDestino)
+        } catch (error: Exception) {
+            // Típicamente ActivityNotFoundException: no hay app de cámara instalada.
+            uriCamaraPendiente = null
+            almacenFotos.eliminarFotoSiEsPropia(uriDestino.toString())
+            Log.w(ETIQUETA_LOG, "No se pudo abrir la app de cámara.", error)
+            mensajeFoto = MENSAJE_CAMARA_NO_DISPONIBLE
+        }
+    }
+
+    // La galería no pide permisos: Photo Picker entrega una URI temporal. Se copia al
+    // almacenamiento propio para que Room guarde una referencia que no caduque.
+    val selectorGaleria = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uriSeleccionada ->
-        if (uriSeleccionada != null) {
-            // El selector entrega un permiso temporal: se intenta persistir para que
-            // la URI siga siendo legible después de reiniciar el proceso.
-            try {
-                contexto.contentResolver.takePersistableUriPermission(
-                    uriSeleccionada,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch (excepcion: SecurityException) {
-                Log.w(ETIQUETA_LOG, "No se pudo persistir el permiso de la foto.", excepcion)
+        if (uriSeleccionada == null) return@rememberLauncherForActivityResult
+
+        alcanceCorrutinas.launch {
+            procesandoFoto = true
+            val uriCopiada = almacenFotos.copiarDesdeGaleria(uriSeleccionada)
+            procesandoFoto = false
+
+            if (uriCopiada != null) {
+                aplicarFotoSeleccionada(uriCopiada.toString())
+                mensajeFoto = null
+            } else {
+                mensajeFoto = MENSAJE_GALERIA
             }
-            uriFotoPerfil = uriSeleccionada.toString()
+        }
+    }
+
+    // Concedido el permiso se abre la cámara; si lo rechaza (o lo bloqueó antes),
+    // se explica al usuario que puede habilitarlo desde los ajustes del sistema.
+    val lanzadorPermisoCamara = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { permisoConcedido ->
+        if (permisoConcedido) {
+            abrirCamara()
+        } else {
+            mensajeFoto = MENSAJE_PERMISO_CAMARA
         }
     }
 
@@ -202,17 +302,69 @@ fun EditarPerfilScreen(
                 nombreCompleto = nombreCompleto
             )
 
-            OutlinedButton(
-                onClick = {
-                    selectorFotoPerfil.launch(
-                        PickVisualMediaRequest(
-                            mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
-                        )
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(space = 12.dp)
             ) {
-                Text(text = "Seleccionar foto de perfil")
+                OutlinedButton(
+                    onClick = {
+                        mensajeFoto = null
+                        when {
+                            !dispositivoTieneCamara ->
+                                mensajeFoto = MENSAJE_CAMARA_NO_DISPONIBLE
+                            ContextCompat.checkSelfPermission(
+                                contexto,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED -> abrirCamara()
+                            else -> lanzadorPermisoCamara.launch(Manifest.permission.CAMERA)
+                        }
+                    },
+                    enabled = !procesandoFoto,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PhotoCamera,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Tomar foto")
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        selectorGaleria.launch(
+                            PickVisualMediaRequest(
+                                mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    },
+                    enabled = !procesandoFoto,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PhotoLibrary,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Galería")
+                }
+            }
+
+            if (procesandoFoto) {
+                Text(
+                    text = "Procesando imagen…",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (mensajeFoto != null) {
+                // Aviso de permiso rechazado, cámara ausente o copia fallida.
+                Text(
+                    text = mensajeFoto.orEmpty(),
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -266,7 +418,7 @@ fun EditarPerfilScreen(
                         uriFotoPerfil
                     )
                 },
-                enabled = formularioValido && !estaGuardando,
+                enabled = formularioValido && !estaGuardando && !procesandoFoto,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = YellowDuoc,
                     contentColor = Color.Black,
@@ -291,5 +443,17 @@ fun EditarPerfilScreen(
     }
 }
 
-/** Etiqueta de Log para diagnosticar el permiso de la URI de la foto. */
+/** Etiqueta de Log para diagnosticar fallos al crear la URI o abrir la cámara. */
 private const val ETIQUETA_LOG = "EditarPerfilScreen"
+
+/** No hay cámara en el equipo o su intent no pudo resolverse. */
+private const val MENSAJE_CAMARA_NO_DISPONIBLE =
+    "No se pudo abrir la cámara. Verifica que el dispositivo tenga una app de cámara."
+
+/** El usuario rechazó el permiso CAMERA o lo bloqueó en los ajustes. */
+private const val MENSAJE_PERMISO_CAMARA =
+    "Para tomar la foto debes permitir el acceso a la cámara desde los ajustes de la app."
+
+/** La copia de la imagen elegida falló (archivo ilegible o sin espacio). */
+private const val MENSAJE_GALERIA =
+    "No se pudo cargar la imagen seleccionada. Intenta con otra."

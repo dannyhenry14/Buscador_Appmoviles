@@ -13,11 +13,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +27,7 @@ import com.example.buscador.model.Usuario
 import com.example.buscador.ui.theme.DarkGreen
 import com.example.buscador.ui.theme.LightGrayMap
 import com.example.buscador.ui.theme.YellowDuoc
-import com.example.buscador.view.components.BotonVolver
+import com.example.buscador.view.components.BarraSuperiorSeccion
 import com.example.buscador.view.components.FotoPerfil
 
 /**
@@ -41,31 +38,29 @@ import com.example.buscador.view.components.FotoPerfil
  * No mantiene copia local de los datos, por lo que Room es la única fuente
  * de verdad y la vista se refresca sola cada vez que cambia una fila.
  *
+ * Es una sección de nivel superior: se llega desde el menú lateral, por lo
+ * que la barra expone el botón hamburguesa en lugar de "Volver".
+ *
  * @param usuario Usuario observado en Room; null si todavía no existe.
  * @param estaCargando `true` mientras Room no entrega la primera lectura.
  * @param onEditarPerfil Navega al formulario de edición (o de creación).
- * @param onVolver Regresa al listado de eventos.
+ * @param onAbrirMenu Abre el menú lateral de navegación entre secciones.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MiPerfilScreen(
     usuario: Usuario?,
     estaCargando: Boolean,
     onEditarPerfil: () -> Unit,
-    onVolver: () -> Unit,
+    onAbrirMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
         containerColor = LightGrayMap,
         topBar = {
-            TopAppBar(
-                title = { Text(text = "Mi perfil") },
-                navigationIcon = { BotonVolver(onVolver = onVolver) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkGreen,
-                    titleContentColor = Color.White
-                )
+            BarraSuperiorSeccion(
+                titulo = "Mi perfil",
+                onAbrirMenu = onAbrirMenu
             )
         }
     ) { paddingInterno ->

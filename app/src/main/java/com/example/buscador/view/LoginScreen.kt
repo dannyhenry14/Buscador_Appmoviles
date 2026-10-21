@@ -1,6 +1,5 @@
 package com.example.buscador.view
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -39,9 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -52,8 +47,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.buscador.ui.theme.AzulDuoc
@@ -64,6 +57,8 @@ import com.example.buscador.ui.theme.GrisTextoSecundario
 import com.example.buscador.ui.theme.NegroTexto
 import com.example.buscador.ui.theme.White
 import com.example.buscador.ui.theme.YellowDuoc
+import com.example.buscador.view.components.LogoSolCenamad
+import com.example.buscador.view.components.MarcaInstitucional
 
 /**
  * Pantalla de inicio de sesión con diseño minimalista.
@@ -319,93 +314,6 @@ private fun coloresCampoLogin() = OutlinedTextFieldDefaults.colors(
     cursorColor = DarkGreen
 )
 
-/**
- * Marca "Duoc UC | CITT" con colores corporativos configurables.
- *
- * En esta pantalla se usa una única vez, en el pie (Duoc dorado, UC azul,
- * separador gris y CITT verde).
- */
-@Composable
-private fun MarcaInstitucional(
-    tamanoTexto: TextUnit,
-    colorDuoc: Color,
-    colorUC: Color,
-    colorSeparador: Color,
-    colorCITT: Color,
-    modifier: Modifier = Modifier,
-    espaciadoLetras: TextUnit = TextUnit.Unspecified
-) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = "Duoc",
-            color = colorDuoc,
-            fontSize = tamanoTexto,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = espaciadoLetras
-        )
-        Text(
-            text = "UC",
-            color = colorUC,
-            fontSize = tamanoTexto,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = espaciadoLetras
-        )
-        Text(
-            text = " | ",
-            color = colorSeparador,
-            fontSize = tamanoTexto,
-            fontWeight = FontWeight.Light
-        )
-        Text(
-            text = "CITT",
-            color = colorCITT,
-            fontSize = tamanoTexto,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = espaciadoLetras
-        )
-    }
-}
-
-/**
- * Logo sol de CENAMAD dibujado 100 % en código (sin recursos drawable).
- *
- * Único dibujo de Canvas que conserva la pantalla: un sol de rayos radiales
- * redondeados con el centro vacío. Los radios se calculan sobre la dimensión
- * mínima para que escale sin deformarse. En el encabezado se usa la variante
- * blanca.
- */
-@Composable
-private fun LogoSolCenamad(
-    tamano: Dp,
-    colorPrimario: Color = DarkGreen,
-    colorSecundario: Color = DoradoCenamad
-) {
-    Canvas(modifier = Modifier.size(tamano)) {
-        val cantidadRayos = 16
-        val radioInterior = size.minDimension * 0.30f
-        val radioExterior = size.minDimension * 0.48f
-        val grosorRayo = size.minDimension * 0.085f
-
-        for (indiceRayo in 0 until cantidadRayos) {
-            val anguloRadianes = Math.toRadians(indiceRayo * (360.0 / cantidadRayos))
-            val desplazamientoHorizontal = kotlin.math.cos(anguloRadianes).toFloat()
-            val desplazamientoVertical = kotlin.math.sin(anguloRadianes).toFloat()
-            drawLine(
-                color = if (indiceRayo % 2 == 0) colorPrimario else colorSecundario,
-                start = Offset(
-                    x = center.x + radioInterior * desplazamientoHorizontal,
-                    y = center.y + radioInterior * desplazamientoVertical
-                ),
-                end = Offset(
-                    x = center.x + radioExterior * desplazamientoHorizontal,
-                    y = center.y + radioExterior * desplazamientoVertical
-                ),
-                strokeWidth = grosorRayo,
-                cap = StrokeCap.Round
-            )
-        }
-    }
-}
 
 /**
  * Línea de accesos secundarios del login: "Ingresar como invitado" y
