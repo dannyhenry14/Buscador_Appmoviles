@@ -1,4 +1,4 @@
-package com.example.buscador.view
+package com.example.buscador.ui.theme.view
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
