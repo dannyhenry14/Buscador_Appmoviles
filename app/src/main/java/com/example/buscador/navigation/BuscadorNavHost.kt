@@ -40,6 +40,8 @@ fun BuscadorNavHost(
     viewModelEventos: EventosViewModel = viewModel(factory = EventosViewModel.Fabrica)
 ) {
     val usuarioActual by viewModelUsuario.usuarioActual.collectAsStateWithLifecycle()
+    val estaCargandoPerfil by viewModelUsuario.estaCargandoPerfil.collectAsStateWithLifecycle()
+    val estadoEdicionPerfil by viewModelUsuario.estadoEdicion.collectAsStateWithLifecycle()
     val listaEventos by viewModelEventos.listaEventos.collectAsStateWithLifecycle()
 
     NavHost(
@@ -49,11 +51,20 @@ fun BuscadorNavHost(
     ) {
         composable(route = RutaAplicacion.Login.ruta) {
             LoginScreen(
-                onIngresar = { _, _ ->
+                onLoginSuccess = { correoElectronico, _ ->
+                    // El login solo captura el correo: si la base está vacía se crea
+                    // un perfil mínimo para que "Mi perfil" tenga datos que leer.
+                    viewModelUsuario.registrarIngreso(correoElectronico)
+                    // Login e invitado comparten destino: el Home de eventos.
                     navController.navigate(RutaAplicacion.Eventos.ruta) {
                         popUpTo(RutaAplicacion.Login.ruta) { inclusive = true }
                         launchSingleTop = true
                     }
+                },
+                onNavigateToRegister = {
+                    // TODO: apuntar a la ruta Registro cuando exista; por ahora
+                    // "más información" abre la pantalla institucional.
+                    navController.navigate(RutaAplicacion.SobreNosotros.ruta)
                 }
             )
         }
@@ -97,6 +108,7 @@ fun BuscadorNavHost(
         composable(route = RutaAplicacion.MiPerfil.ruta) {
             MiPerfilScreen(
                 usuario = usuarioActual,
+                estaCargando = estaCargandoPerfil,
                 onEditarPerfil = { navController.navigate(RutaAplicacion.EditarPerfil.ruta) },
                 onVolver = { navController.popBackStack() }
             )
@@ -105,6 +117,8 @@ fun BuscadorNavHost(
         composable(route = RutaAplicacion.EditarPerfil.ruta) {
             EditarPerfilScreen(
                 usuarioActual = usuarioActual,
+                estaCargando = estaCargandoPerfil,
+                estadoEdicion = estadoEdicionPerfil,
                 onGuardarCambios = { nombreCompleto, correoElectronico, biografia, uriFotoPerfil ->
                     viewModelUsuario.guardarPerfil(
                         nombreCompleto = nombreCompleto,
@@ -112,10 +126,13 @@ fun BuscadorNavHost(
                         biografia = biografia,
                         uriFotoPerfil = uriFotoPerfil
                     )
-                    // El guardado es asíncrono (Room); volvemos al perfil, que se
-                    // actualizará solo gracias al Flow reactivo del ViewModel.
+                },
+                onGuardadoExitoso = {
+                    // Solo se regresa cuando Room confirmó el INSERT/UPDATE; el perfil
+                    // se refresca solo gracias al Flow reactivo del ViewModel.
                     navController.popBackStack()
                 },
+                onLimpiarEstadoEdicion = viewModelUsuario::finalizarEdicion,
                 onVolver = { navController.popBackStack() }
             )
         }
