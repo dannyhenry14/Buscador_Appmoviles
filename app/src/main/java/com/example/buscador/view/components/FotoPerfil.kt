@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,18 +16,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
-import com.example.buscador.ui.theme.LightGrayMap
+import com.example.buscador.ui.theme.DarkGreen
 
 /**
  * Foto de perfil circular reutilizada por MiPerfil y EditarPerfil.
  *
- * - Si no hay URI guardada, muestra un marcador neutro en lugar de una imagen rota.
+ * - Si no hay URI guardada, muestra un avatar con icono de usuario genérico en
+ *   lugar de una imagen rota o de un texto plano.
  * - Si hay URI, Coil resuelve la imagen (soporta content:// del selector y de FileProvider).
  * - Si la URI ya no es legible (por ejemplo, una foto antigua cuyo permiso expiró),
  *   Coil emite error y se vuelve al marcador en lugar de dejar un círculo vacío.
@@ -40,9 +41,11 @@ fun FotoPerfil(
     modifier: Modifier = Modifier
 ) {
     val modificadorBase = modifier
-        .size(128.dp)
+        .size(size = 128.dp)
         .clip(CircleShape)
-        .background(LightGrayMap)
+        // Fondo verde muy suave: el avatar se distingue del fondo gris de la
+        // pantalla incluso cuando el usuario todavía no eligió una foto.
+        .background(color = DarkGreen.copy(alpha = 0.12f))
 
     // Se reinicia al cambiar la URI: así una foto nueva no hereda el error de la anterior.
     var fotoIlegible by remember(uriFotoPerfil) { mutableStateOf(false) }
@@ -52,7 +55,14 @@ fun FotoPerfil(
         contentAlignment = Alignment.Center
     ) {
         if (uriFotoPerfil.isNullOrBlank() || fotoIlegible) {
-            Text(text = "Sin foto", color = Color.Gray, fontSize = 12.sp)
+            // Avatar genérico: icono grande y centrado en el color institucional
+            // en lugar de un texto, para que el marcador se vea intencional.
+            Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = "Sin foto de perfil",
+                tint = DarkGreen.copy(alpha = 0.55f),
+                modifier = Modifier.size(size = 64.dp)
+            )
         } else {
             AsyncImage(
                 model = uriFotoPerfil,

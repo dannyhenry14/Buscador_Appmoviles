@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -35,9 +37,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import com.example.buscador.ui.theme.DarkGreen
 import com.example.buscador.ui.theme.GrisTextoSecundario
 import com.example.buscador.ui.theme.LightGrayMap
@@ -59,6 +63,9 @@ private val Calle = Color(0xFFFFFFFF)
 private val EdificioBeige = Color(0xFFE8DCC3)
 private val EdificioGris = Color(0xFFD9D9D6)
 private val EdificioNaranja = Color(0xFFF2A65A)
+
+/** Aviso mostrado por los controles flotantes mientras el mapa es un MVP. */
+private const val MENSAJE_MAPA_EN_DESARROLLO = "Función de mapa en desarrollo"
 
 /**
  * Ubicación señalada en el mapa del campus.
@@ -123,8 +130,9 @@ private val ubicacionesCampus = listOf(
  * Es una simulación visual (no usa Google Maps ni geolocalización): el fondo
  * —manzanas, calles, avenida y edificios— se dibuja en un único [Canvas], y
  * los pines con sus etiquetas se componen encima anclados por fracciones.
- * La barra de búsqueda y los controles de zoom son decorativos: representan
- * la maqueta de referencia sin lógica asociada todavía.
+ * La barra de búsqueda sigue siendo decorativa; los controles flotantes
+ * muestran un aviso de función en desarrollo al pulsarlos, mientras el
+ * mapa real no esté integrado.
  *
  * Es una sección de nivel superior: su barra expone el botón hamburguesa
  * del menú lateral.
@@ -188,7 +196,7 @@ fun MapScreen(
             ControlesFlotantesMapa(
                 modifier = Modifier
                     .align(alignment = Alignment.CenterEnd)
-                    .padding(end = 16.dp)
+                    .padding(end = 24.dp)
             )
             TarjetaInformacionSede(
                 modifier = Modifier
@@ -420,31 +428,62 @@ private fun BarraBusquedaMapa(modifier: Modifier = Modifier) {
     }
 }
 
-/** Botones flotantes de georreferencia y zoom (decorativos, como la maqueta). */
+/**
+ * Botones flotantes de georreferencia y zoom.
+ *
+ * Mientras el mapa es un MVP, los tres controles muestran un [Toast] de aviso
+ * en lugar de ejecutar la acción real de geolocalización o zoom.
+ */
 @Composable
 private fun ControlesFlotantesMapa(modifier: Modifier = Modifier) {
+    val contexto = LocalContext.current
+
+    // Acción temporal compartida por los tres controles mientras no exista
+    // un motor de mapa real que ejecutar.
+    val avisarFuncionEnDesarrollo = {
+        Toast.makeText(
+            contexto,
+            MENSAJE_MAPA_EN_DESARROLLO,
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(space = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        BotonCircularMapa(onClick = { /* TODO: centrar en la ubicación del usuario */ }) {
+        BotonCircularMapa(onClick = avisarFuncionEnDesarrollo) {
             Icon(
                 imageVector = Icons.Filled.MyLocation,
                 contentDescription = "Centrar en mi ubicación",
                 tint = DarkGreen
             )
         }
-        BotonCircularMapa(onClick = { /* TODO: acercar el mapa */ }) {
-            Text(text = "+", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DarkGreen)
+        BotonCircularMapa(onClick = avisarFuncionEnDesarrollo) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "Acercar el mapa",
+                tint = DarkGreen
+            )
         }
-        BotonCircularMapa(onClick = { /* TODO: alejar el mapa */ }) {
-            Text(text = "−", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DarkGreen)
+        BotonCircularMapa(onClick = avisarFuncionEnDesarrollo) {
+            Icon(
+                imageVector = Icons.Filled.Remove,
+                contentDescription = "Alejar el mapa",
+                tint = DarkGreen
+            )
         }
     }
 }
 
-/** Base circular blanca compartida por los controles flotantes del mapa. */
+/**
+ * Base circular blanca compartida por los controles flotantes del mapa.
+ *
+ * El contenido se centra con un [Box] porque la versión con `onClick` de
+ * [Surface] no expone `contentAlignment`; así los iconos quedan exactamente
+ * en el medio del círculo.
+ */
 @Composable
 private fun BotonCircularMapa(
     onClick: () -> Unit,
@@ -456,9 +495,15 @@ private fun BotonCircularMapa(
         modifier = modifier.size(46.dp),
         shape = CircleShape,
         color = White,
-        shadowElevation = 6.dp,
-        content = contenido
-    )
+        shadowElevation = 6.dp
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            contenido()
+        }
+    }
 }
 
 /** Tarjeta inferior con la dirección de la sede, como en la maqueta. */

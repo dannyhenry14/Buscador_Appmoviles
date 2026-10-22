@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +23,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Button
@@ -32,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -58,9 +63,12 @@ import com.example.buscador.data.local.almacenamiento.AlmacenFotosPerfil
 import com.example.buscador.model.Usuario
 import com.example.buscador.model.ValidadorPerfil
 import com.example.buscador.ui.theme.DarkGreen
+import com.example.buscador.ui.theme.GrisBordeCampo
+import com.example.buscador.ui.theme.GrisTextoSecundario
 import com.example.buscador.ui.theme.LightGrayMap
 import com.example.buscador.ui.theme.YellowDuoc
 import com.example.buscador.view.components.BotonVolver
+import com.example.buscador.view.components.DialogoConfirmacion
 import com.example.buscador.view.components.FotoPerfil
 import com.example.buscador.viewmodel.EstadoEdicionPerfil
 import kotlinx.coroutines.launch
@@ -91,7 +99,8 @@ import kotlinx.coroutines.launch
  * @param onGuardarCambios Callback con los cuatro campos del perfil.
  * @param onGuardadoExitoso Se invoca cuando Room confirmó la escritura.
  * @param onLimpiarEstadoEdicion Devuelve el estado a "inactivo" al salir de la pantalla.
- * @param onVolver Regresa al perfil sin guardar.
+ * @param onVolver Regresa al perfil; si hay cambios sin guardar, la pantalla
+ *   pide confirmación antes de descartarlos.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -261,13 +270,68 @@ fun EditarPerfilScreen(
     val formularioValido = ValidadorPerfil.esNombreValido(nombreCompleto) &&
         ValidadorPerfil.esCorreoValido(correoElectronico)
 
+    // `true` cuando el formulario difiere del perfil leído en Room (o ya acumuló
+    // datos de un perfil nuevo que todavía no existe en la base local). Se
+    // recalcula en cada recomposición, así que cubre tanto texto como foto.
+    val hayCambiosSinGuardar = when (val usuario = usuarioActual) {
+        null -> nombreCompleto.isNotBlank() || correoElectronico.isNotBlank() ||
+            biografia.isNotBlank() || uriFotoPerfil != null
+        else -> nombreCompleto != usuario.nombreCompleto ||
+            correoElectronico != usuario.correoElectronico ||
+            biografia != usuario.biografia ||
+            uriFotoPerfil != usuario.uriFotoPerfil
+    }
+
+    // Visibilidad del diálogo de descarte: sobrevive a rotaciones y se oculta
+    // tanto al confirmar como al cancelar.
+    var dialogoDescarteVisible by rememberSaveable { mutableStateOf(false) }
+
+    // Salir del formulario: con cambios sin guardar se pide confirmación para no
+    // perder trabajo por accidente; sin cambios se regresa de inmediato. Mientras
+    // se guarda no se pregunta: la escritura ya va en camino hacia Room.
+    fun intentarVolver() {
+        if (hayCambiosSinGuardar && !estaGuardando) {
+            dialogoDescarteVisible = true
+        } else {
+            onVolver()
+        }
+    }
+
+    // El gesto atrás del sistema sigue el mismo criterio que el botón "Volver":
+    // habilitado solo cuando hay algo que confirmar; en caso contrario el
+    // comportamiento por defecto (popBackStack del NavHost) queda intacto.
+    BackHandler(enabled = hayCambiosSinGuardar && !estaGuardando) {
+        dialogoDescarteVisible = true
+    }
+
+    // Descartar es una acción con consecuencias: se confirma antes de ejecutarla.
+    // El toque fuera del diálogo cuenta como "Cancelar" y conserva los cambios.
+    if (dialogoDescarteVisible) {
+        DialogoConfirmacion(
+            titulo = "Descartar cambios",
+            mensaje = "Tienes cambios sin guardar. Si sales ahora se perderá lo " +
+                "que escribiste en el formulario y el perfil quedará como estaba.",
+            onConfirmar = {
+                dialogoDescarteVisible = false
+                // La foto elegida vive solo en el almacenamiento propio de la app:
+                // al descartar ya nadie la referencia y se libera. La original
+                // (la de Room) no se toca, igual que al guardar con éxito.
+                if (uriFotoPerfil != null && uriFotoPerfil != uriFotoOriginal) {
+                    almacenFotos.eliminarFotoSiEsPropia(uriFotoPerfil)
+                }
+                onVolver()
+            },
+            onCancelar = { dialogoDescarteVisible = false }
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         containerColor = LightGrayMap,
         topBar = {
             TopAppBar(
                 title = { Text(text = "Editar perfil") },
-                navigationIcon = { BotonVolver(onVolver = onVolver) },
+                navigationIcon = { BotonVolver(onVolver = { intentarVolver() }) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = DarkGreen,
                     titleContentColor = Color.White
@@ -373,28 +437,52 @@ fun EditarPerfilScreen(
                 value = nombreCompleto,
                 onValueChange = { nuevoNombre -> nombreCompleto = nuevoNombre },
                 label = { Text(text = "Nombre completo") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(size = 20.dp)
+                    )
+                },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = coloresCampoPerfil()
             )
 
             OutlinedTextField(
                 value = correoElectronico,
                 onValueChange = { nuevoCorreo -> correoElectronico = nuevoCorreo },
                 label = { Text(text = "Correo electrónico") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Email,
+                        contentDescription = null,
+                        modifier = Modifier.size(size = 20.dp)
+                    )
+                },
                 singleLine = true,
                 isError = correoInvalido,
                 supportingText = { Text(text = "Ejemplo: nombre@cenamad.cl") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = coloresCampoPerfil()
             )
 
             OutlinedTextField(
                 value = biografia,
                 onValueChange = { nuevaBiografia -> biografia = nuevaBiografia },
                 label = { Text(text = "Biografía") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(size = 20.dp)
+                    )
+                },
                 minLines = 3,
                 maxLines = 6,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = coloresCampoPerfil()
             )
 
             if (mensajeError != null) {
@@ -442,6 +530,25 @@ fun EditarPerfilScreen(
         }
     }
 }
+
+/**
+ * Paleta compartida por los campos del formulario.
+ *
+ * En reposo el borde y los iconos son neutros; al recibir el foco, el borde,
+ * la etiqueta, el icono guía y el cursor pasan al color primario (verde
+ * institucional) para reforzar el contraste del campo activo.
+ */
+@Composable
+private fun coloresCampoPerfil() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+    focusedSupportingTextColor = MaterialTheme.colorScheme.primary,
+    cursorColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = GrisBordeCampo,
+    unfocusedLabelColor = GrisTextoSecundario,
+    unfocusedLeadingIconColor = GrisTextoSecundario
+)
 
 /** Etiqueta de Log para diagnosticar fallos al crear la URI o abrir la cámara. */
 private const val ETIQUETA_LOG = "EditarPerfilScreen"

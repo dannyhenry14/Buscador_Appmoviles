@@ -1,5 +1,6 @@
 package com.example.buscador.data.repository
 
+import com.example.buscador.R
 import com.example.buscador.model.Evento
 
 /**
@@ -21,7 +22,8 @@ class EventoRepositoryEnMemoria : EventoRepository {
             descripcion = "Jornada técnica sobre sistemas constructivos de mediana altura, " +
                 "con casos reales y revisión de normativa vigente.",
             fecha = "12 de noviembre de 2026",
-            ubicacion = "Auditorio CENAMAD, Santiago"
+            ubicacion = "Auditorio CENAMAD, Santiago",
+            imagenResId = R.drawable.img_seminario
         ),
         Evento(
             idEvento = 2L,
@@ -29,7 +31,8 @@ class EventoRepositoryEnMemoria : EventoRepository {
             descripcion = "Taller práctico de dimensionamiento de elementos de madera " +
                 "aplicando la norma NCh1198 y herramientas de cálculo.",
             fecha = "26 de noviembre de 2026",
-            ubicacion = "Laboratorio de Estructuras, Santiago"
+            ubicacion = "Laboratorio de Estructuras, Santiago",
+            imagenResId = R.drawable.img_taller
         ),
         Evento(
             idEvento = 3L,
@@ -37,7 +40,8 @@ class EventoRepositoryEnMemoria : EventoRepository {
             descripcion = "Exposición de productos de ingeniería de madera, proveedores " +
                 "y proyectos de investigación aplicada del centro.",
             fecha = "10 de diciembre de 2026",
-            ubicacion = "Parque de Innovación, Concepción"
+            ubicacion = "Parque de Innovación, Concepción",
+            imagenResId = R.drawable.img_feria
         ),
         Evento(
             idEvento = 4L,
@@ -45,7 +49,8 @@ class EventoRepositoryEnMemoria : EventoRepository {
             descripcion = "Actualización sobre certificación de madera estructural y " +
                 "requisitos para proyectos de construcción sustentable.",
             fecha = "15 de enero de 2027",
-            ubicacion = "Modalidad híbrida"
+            ubicacion = "Modalidad híbrida",
+            imagenResId = R.drawable.img_charla
         )
     )
 

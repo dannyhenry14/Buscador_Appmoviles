@@ -1,5 +1,7 @@
 package com.example.buscador.navigation
 
+import android.net.Uri
+
 /**
  * Catálogo central de rutas de Navigation Compose.
  *
@@ -12,8 +14,27 @@ package com.example.buscador.navigation
  */
 sealed class RutaAplicacion(val ruta: String) {
 
-    /** Pantalla inicial: autenticación del usuario. */
-    data object Login : RutaAplicacion(ruta = "login")
+    /**
+     * Pantalla inicial: autenticación del usuario.
+     *
+     * Acepta el argumento opcional `aviso`: un mensaje contextual (por ejemplo,
+     * las instrucciones para el invitado que quiere registrar una cuenta) que
+     * reemplaza al aviso por defecto del login. Sin aviso, la ruta equivale a
+     * "login" y la pantalla muestra igualmente su banner informativo.
+     */
+    data object Login : RutaAplicacion(ruta = "login?aviso={aviso}") {
+        /** Nombre del argumento opcional que viaja en la ruta del login. */
+        const val ARGUMENTO_AVISO = "aviso"
+
+        /** Aviso para el invitado que solicita registrar un usuario desde su perfil. */
+        const val AVISO_REGISTRO_INVITADO =
+            "Para registrar tu usuario, inicia sesión con tus credenciales " +
+                "y completa tu perfil."
+
+        /** Construye la ruta del login con un aviso codificado para la UI. */
+        fun crearRutaConAviso(aviso: String): String =
+            "login?aviso=${Uri.encode(aviso)}"
+    }
 
     /** Home de la aplicación: listado de eventos de CENAMAD. */
     data object Eventos : RutaAplicacion(ruta = "eventos")

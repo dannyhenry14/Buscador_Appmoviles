@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -71,27 +72,51 @@ import com.example.buscador.view.components.MarcaInstitucional
  * No hay dibujos decorativos de Canvas salvo el logo sol; la pantalla usa
  * fondo blanco y jerarquía tipográfica.
  *
- * Stateless respecto a la navegación: expone [onLoginSuccess] y
- * [onNavigateToRegister] y delega las rutas al NavHost (la vista no conoce
- * rutas). El estado del formulario es local porque es efímero (no sobrevive
- * a la pantalla).
+ * Stateless respecto a la navegación: expone [onLoginSuccess],
+ * [onIngresarComoInvitado] y [onNavigateToRegister] y delega las rutas al
+ * NavHost (la vista no conoce rutas). El estado del formulario es local porque
+ * es efímero (no sobrevive a la pantalla).
  *
  * Validación: el botón INGRESAR solo se habilita cuando ambos campos tienen
- * contenido ([String.isNotBlank], ignora espacios en blanco).
+ * contenido ([String.isNotBlank], ignora espacios en blanco). Las credenciales
+ * se comprueban en el ViewModel: si el último intento fue rechazado
+ * ([credencialesIncorrectas]), ambos campos se marcan en rojo con el texto
+ * "Correo o contraseña incorrectos" hasta que el usuario vuelva a escribir.
  *
+ * @param credencialesIncorrectas `true` cuando el ViewModel rechazó el último
+ *   intento de ingreso; activa el error visual de ambos campos.
  * @param onLoginSuccess Invocado con el correo y la contraseña capturados al
- *   presionar INGRESAR (o con cadenas vacías al entrar como invitado).
+ *   presionar INGRESAR (o al confirmar con el teclado). El NavHost valida las
+ *   credenciales y solo navega si son correctas.
+ * @param onIngresarComoInvitado Invocado desde el enlace "Ingresar como
+ *   invitado"; el NavHost anula el usuario activo antes de navegar.
+ * @param onLimpiarErrorCredenciales Apaga el error visual; se invoca al editar
+ *   cualquiera de los campos.
  * @param onNavigateToRegister Invocado desde el enlace "más información".
+ * @param avisoRegistro Aviso contextual opcional que reemplaza al mensaje de
+ *   registro por defecto. La pantalla muestra siempre el banner informativo:
+ *   si llega nulo o vacío se usa [AVISO_REGISTRO_POR_DEFECTO], así que el
+ *   mensaje aparece al abrir la app sin depender de un argumento de navegación.
  */
 @Composable
 fun LoginScreen(
+    credencialesIncorrectas: Boolean,
     onLoginSuccess: (correoElectronico: String, contrasena: String) -> Unit,
+    onIngresarComoInvitado: () -> Unit,
+    onLimpiarErrorCredenciales: () -> Unit,
     onNavigateToRegister: () -> Unit,
+    avisoRegistro: String? = null,
     modifier: Modifier = Modifier
 ) {
     var correoElectronico by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var contrasenaEsVisible by remember { mutableStateOf(false) }
+
+    // El banner está visible desde el primer arranque del login; un aviso
+    // recibido por navegación (por ejemplo, desde el perfil invitado) tiene
+    // prioridad y sustituye al texto por defecto.
+    val textoAviso = avisoRegistro?.takeIf { aviso -> aviso.isNotBlank() }
+        ?: AVISO_REGISTRO_POR_DEFECTO
 
     // Regla de validación: ambos campos deben tener contenido real (no solo espacios).
     val formularioEsValido =
@@ -136,11 +161,34 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(height = 40.dp))
 
+                // Banner informativo: visible siempre, con el texto por defecto
+                // o con el aviso que llegó por navegación.
+                Text(
+                    text = textoAviso,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DarkGreen,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = DoradoCenamad.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(size = 12.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                )
+                Spacer(modifier = Modifier.height(height = 24.dp))
+
                 OutlinedTextField(
                     value = correoElectronico,
-                    onValueChange = { nuevoValor -> correoElectronico = nuevoValor },
+                    onValueChange = { nuevoValor ->
+                        correoElectronico = nuevoValor
+                        onLimpiarErrorCredenciales()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(text = "Correo o Usuario") },
+                    isError = credencialesIncorrectas,
+                    supportingText = { MensajeErrorCredenciales(credencialesIncorrectas) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
@@ -154,9 +202,14 @@ fun LoginScreen(
 
                 OutlinedTextField(
                     value = contrasena,
-                    onValueChange = { nuevoValor -> contrasena = nuevoValor },
+                    onValueChange = { nuevoValor ->
+                        contrasena = nuevoValor
+                        onLimpiarErrorCredenciales()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(text = "Contraseña") },
+                    isError = credencialesIncorrectas,
+                    supportingText = { MensajeErrorCredenciales(credencialesIncorrectas) },
                     singleLine = true,
                     // El campo oculta los caracteres por defecto; el ícono del ojo
                     // alterna a VisualTransformation.None para mostrarlos.
@@ -239,7 +292,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(height = 18.dp))
 
                 TextoAccesosSecundarios(
-                    onIngresarComoInvitado = { onLoginSuccess("", "") },
+                    onIngresarComoInvitado = onIngresarComoInvitado,
                     onAbrirMasInformacion = onNavigateToRegister
                 )
             }
@@ -316,6 +369,20 @@ private fun coloresCampoLogin() = OutlinedTextFieldDefaults.colors(
 
 
 /**
+ * Texto de apoyo del error de credenciales.
+ *
+ * Solo emite contenido cuando el último intento fue rechazado; Material 3 lo
+ * pinta en el color de error automáticamente porque los campos están marcados
+ * con `isError`, cumpliendo la retroalimentación visual exigida.
+ */
+@Composable
+private fun MensajeErrorCredenciales(credencialesIncorrectas: Boolean) {
+    if (credencialesIncorrectas) {
+        Text(text = "Correo o contraseña incorrectos")
+    }
+}
+
+/**
  * Línea de accesos secundarios del login: "Ingresar como invitado" y
  * "más información" como enlaces sobre un mismo texto.
  *
@@ -354,3 +421,12 @@ private fun TextoAccesosSecundarios(
     }
     Text(text = textoAccesos, fontSize = 14.sp)
 }
+
+/**
+ * Texto por defecto del banner informativo del login.
+ *
+ * Se muestra al abrir la aplicación por primera vez, sin necesidad de un
+ * argumento de navegación, para explicar cómo registrar un usuario.
+ */
+private const val AVISO_REGISTRO_POR_DEFECTO =
+    "Para registrar tu usuario, inicia sesión con tus credenciales y completa tu perfil."

@@ -1,6 +1,7 @@
 package com.example.buscador.data
 
 import android.content.Context
+import com.example.buscador.data.local.almacenamiento.AlmacenFotosPerfil
 import com.example.buscador.data.local.database.BuscadorDatabase
 import com.example.buscador.data.repository.EventoRepository
 import com.example.buscador.data.repository.EventoRepositoryEnMemoria
@@ -26,4 +27,7 @@ class ContenedorAplicacion(contexto: Context) {
 
     /** Repositorio de eventos; por ahora en memoria, intercambiable por Room/API. */
     val repositorioEvento: EventoRepository = EventoRepositoryEnMemoria()
+
+    /** Almacén de fotos de perfil; instancia única porque solo retiene el contexto. */
+    val almacenFotosPerfil: AlmacenFotosPerfil = AlmacenFotosPerfil(contexto)
 }

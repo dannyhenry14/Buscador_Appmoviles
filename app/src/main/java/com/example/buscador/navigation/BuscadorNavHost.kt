@@ -56,6 +56,8 @@ fun BuscadorNavHost(
     val usuarioActual by viewModelUsuario.usuarioActual.collectAsStateWithLifecycle()
     val estaCargandoPerfil by viewModelUsuario.estaCargandoPerfil.collectAsStateWithLifecycle()
     val estadoEdicionPerfil by viewModelUsuario.estadoEdicion.collectAsStateWithLifecycle()
+    val credencialesIncorrectas by viewModelUsuario.credencialesIncorrectas
+        .collectAsStateWithLifecycle()
     val listaEventos by viewModelEventos.listaEventos.collectAsStateWithLifecycle()
 
     // Estado del menú lateral. Vive en el NavHost (no en las pantallas) porque
@@ -101,18 +103,51 @@ fun BuscadorNavHost(
             startDestination = RutaAplicacion.Login.ruta,
             modifier = modifier
         ) {
-            composable(route = RutaAplicacion.Login.ruta) {
+            composable(
+                route = RutaAplicacion.Login.ruta,
+                arguments = listOf(
+                    navArgument(name = RutaAplicacion.Login.ARGUMENTO_AVISO) {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { entradaLogin ->
                 LoginScreen(
-                    onLoginSuccess = { correoElectronico, _ ->
-                        // El login solo captura el correo: si la base está vacía se crea
-                        // un perfil mínimo para que "Mi perfil" tenga datos que leer.
-                        viewModelUsuario.registrarIngreso(correoElectronico)
-                        // Login e invitado comparten destino: el Home de eventos.
+                    // Sin aviso en la ruta, la pantalla usa su banner por defecto;
+                    // el argumento solo aporta mensajes contextuales.
+                    avisoRegistro = entradaLogin.arguments
+                        ?.getString(RutaAplicacion.Login.ARGUMENTO_AVISO)
+                        ?.takeIf { aviso -> aviso.isNotBlank() },
+                    credencialesIncorrectas = credencialesIncorrectas,
+                    onLoginSuccess = { correoElectronico, contrasena ->
+                        // Autenticación simulada: solo con el usuario de prueba se
+                        // abre la sesión. Con credenciales incorrectas no se navega;
+                        // el ViewModel enciende el error que marcan los campos.
+                        if (viewModelUsuario.validarCredenciales(
+                                correoElectronico = correoElectronico,
+                                contrasena = contrasena
+                            )
+                        ) {
+                            // Si la base está vacía se crea un perfil mínimo para
+                            // que "Mi perfil" tenga datos que leer.
+                            viewModelUsuario.registrarIngreso(correoElectronico)
+                            navController.navigate(RutaAplicacion.Eventos.ruta) {
+                                popUpTo(RutaAplicacion.Login.ruta) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onIngresarComoInvitado = {
+                        // El usuario activo pasa a null en memoria antes de navegar:
+                        // "Mi perfil" muestra su estado vacío sin arrastrar la fila
+                        // persistida en Room.
+                        viewModelUsuario.ingresarComoInvitado()
                         navController.navigate(RutaAplicacion.Eventos.ruta) {
                             popUpTo(RutaAplicacion.Login.ruta) { inclusive = true }
                             launchSingleTop = true
                         }
                     },
+                    onLimpiarErrorCredenciales = viewModelUsuario::limpiarErrorCredenciales,
                     onNavigateToRegister = {
                         // TODO: apuntar a la ruta Registro cuando exista; por ahora
                         // "más información" abre la pantalla institucional.
@@ -161,6 +196,30 @@ fun BuscadorNavHost(
                     usuario = usuarioActual,
                     estaCargando = estaCargandoPerfil,
                     onEditarPerfil = { navController.navigate(RutaAplicacion.EditarPerfil.ruta) },
+                    onRegistrarUsuario = {
+                        // El invitado no crea perfil directamente: el registro comienza
+                        // en el login, al que se vuelve limpiando el back stack y con el
+                        // aviso que explica cómo crear la cuenta.
+                        navController.navigate(
+                            RutaAplicacion.Login.crearRutaConAviso(
+                                aviso = RutaAplicacion.Login.AVISO_REGISTRO_INVITADO
+                            )
+                        ) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onCerrarSesion = {
+                        // Confirmado el diálogo: la sesión termina en el ViewModel
+                        // y el grafo vuelve a nacer en el login. popUpTo sobre el
+                        // propio grafo limpia todo el back stack, de modo que
+                        // "Atrás" no regrese a las secciones de la sesión cerrada.
+                        viewModelUsuario.cerrarSesion()
+                        navController.navigate(RutaAplicacion.Login.ruta) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                     onAbrirMenu = abrirMenuLateral
                 )
             }
