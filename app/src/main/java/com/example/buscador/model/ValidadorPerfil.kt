@@ -19,7 +19,17 @@ object ValidadorPerfil {
     /** El nombre es obligatorio: es el dato que identifica al usuario en el perfil. */
     fun esNombreValido(nombreCompleto: String): Boolean = nombreCompleto.isNotBlank()
 
+    /**
+     * La contraseña debe alcanzar la longitud mínima definida en
+     * [LONGITUD_MINIMA_CONTRASENA] para considerarse válida en el registro.
+     */
+    fun esContrasenaValida(contrasena: String): Boolean =
+        contrasena.trim().length >= LONGITUD_MINIMA_CONTRASENA
+
     /** Valida el correo electrónico antes de insertarlo o actualizarlo en Room. */
     fun esCorreoValido(correoElectronico: String): Boolean =
         PATRON_CORREO_ELECTRONICO.matches(input = correoElectronico.trim())
+
+    /** Longitud mínima exigida a la contraseña en el formulario de registro. */
+    const val LONGITUD_MINIMA_CONTRASENA = 8
 }

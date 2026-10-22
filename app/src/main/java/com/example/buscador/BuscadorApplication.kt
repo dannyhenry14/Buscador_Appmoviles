@@ -1,7 +1,6 @@
 package com.example.buscador
 
 import android.app.Application
-import com.example.buscador.data.ContenedorAplicacion
 
 /**
  * Application personalizada: punto de arranque de las dependencias globales.

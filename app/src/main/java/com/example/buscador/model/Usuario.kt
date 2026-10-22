@@ -11,6 +11,7 @@ package com.example.buscador.model
  * el usuario aún no ha sido insertado en la base de datos.
  * @property nombreCompleto Nombre y apellidos que se muestran en el perfil.
  * @property correoElectronico Correo institucional del usuario (único en la base de datos).
+ * @property contrasena Contraseña de acceso; vacía en perfiles sin registro (invitados).
  * @property biografia Texto libre que describe al usuario dentro de la app.
  * @property uriFotoPerfil URI persistida de la foto de perfil (content:// del selector de fotos).
  */
@@ -18,6 +19,7 @@ data class Usuario(
     val idUsuario: Long = ID_SIN_ASIGNAR,
     val nombreCompleto: String,
     val correoElectronico: String,
+    val contrasena: String = "",
     val biografia: String,
     val uriFotoPerfil: String? = null
 ) {

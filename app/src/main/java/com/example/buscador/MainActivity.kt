@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
-import com.example.buscador.navigation.BuscadorNavHost
+import com.example.buscador.ui.navigation.BuscadorNavHost
 import com.example.buscador.ui.theme.BuscadorTheme
 
 /**

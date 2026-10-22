@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.buscador.BuscadorApplication
-import com.example.buscador.data.repository.EventoRepository
+import com.example.buscador.repository.EventoRepository
 import com.example.buscador.model.Evento
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
