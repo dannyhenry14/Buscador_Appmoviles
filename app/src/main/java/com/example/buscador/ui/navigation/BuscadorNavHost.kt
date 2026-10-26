@@ -193,7 +193,15 @@ fun BuscadorNavHost(
                     onAbrirDetalleEvento = { idEvento ->
                         navController.navigate(RutaAplicacion.DetalleEvento.crearRuta(idEvento))
                     },
-                    onAbrirMenu = abrirMenuLateral
+                    onAbrirMenu = abrirMenuLateral,
+                    onBuscar = { texto, categoria, fechaDesdeMillis, fechaHastaMillis ->
+                        viewModelEventos.buscarEventos(
+                            texto = texto,
+                            categoria = categoria,
+                            fechaDesdeMillis = fechaDesdeMillis,
+                            fechaHastaMillis = fechaHastaMillis
+                        )
+                    }
                 )
             }
 

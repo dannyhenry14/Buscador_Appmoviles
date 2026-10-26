@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.buscador.model.CategoriaEvento
 import com.example.buscador.model.Evento
 import com.example.buscador.ui.theme.DarkGreen
 import com.example.buscador.ui.theme.LightGrayMap
@@ -54,22 +55,24 @@ import com.example.buscador.ui.components.BarraSuperiorSeccion
  * expone [onAbrirMenu] (botón hamburguesa) y el detalle de evento como
  * flujo interno de la sección.
  *
- * Incluye una barra de búsqueda puramente visual (MVP): su texto vive en un
- * estado local de la pantalla, pero todavía no filtra el listado ni consulta
- * Room.
+ * Incluye una barra de búsqueda: su texto vive en un estado local de la
+ * pantalla y cada cambio se informa mediante [onBuscar], para que el
+ * ViewModel filtre el listado.
  *
  * @param listaEventos Eventos observados desde [com.example.buscador.viewmodel.EventosViewModel].
  * @param onAbrirDetalleEvento Navega al detalle del evento seleccionado.
  * @param onAbrirMenu Abre el menú lateral de navegación entre secciones.
+ * @param onBuscar Avisa que cambió algún filtro; entrega texto, categoría y rango de fechas.
  */
 @Composable
 fun EventosScreen(
     listaEventos: List<Evento>,
     onAbrirDetalleEvento: (idEvento: Long) -> Unit,
     onAbrirMenu: () -> Unit,
+    onBuscar: (String, CategoriaEvento?, Long?, Long?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Estado local del campo de búsqueda: solo UI, sin lógica de filtrado (MVP).
+    // Estado local del campo de búsqueda: guarda el texto que escribe el usuario.
     var textoBusqueda by remember { mutableStateOf(value = "") }
 
     Scaffold(
@@ -90,10 +93,13 @@ fun EventosScreen(
                 .background(LightGrayMap)
                 .padding(paddingInterno)
         ) {
-            // Barra de búsqueda visual anclada bajo la barra superior (MVP).
+            // Barra de búsqueda anclada bajo la barra superior.
             BarraBusquedaVisual(
                 texto = textoBusqueda,
-                onTextoCambiado = { textoBusqueda = it },
+                onTextoCambiado = { textoNuevo ->
+                    textoBusqueda = textoNuevo
+                    onBuscar(textoNuevo, null, null, null)
+                },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)
             )
             if (listaEventos.isEmpty()) {
