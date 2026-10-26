@@ -7,16 +7,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -26,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +51,11 @@ import com.example.buscador.ui.theme.LightGrayMap
 import com.example.buscador.ui.theme.NegroTexto
 import com.example.buscador.ui.theme.White
 import com.example.buscador.ui.components.BarraSuperiorSeccion
+import com.example.buscador.ui.components.DialogoRangoFechas
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Pantalla Home de la aplicación: listado de eventos de CENAMAD.
@@ -58,9 +67,10 @@ import com.example.buscador.ui.components.BarraSuperiorSeccion
  * expone [onAbrirMenu] (botón hamburguesa) y el detalle de evento como
  * flujo interno de la sección.
  *
- * Incluye una barra de búsqueda por texto y una fila de categorías (intereses).
- * Los filtros elegidos viven en el estado de la pantalla y cada cambio se
- * informa mediante [onBuscar], para que el ViewModel filtre el listado.
+ * Incluye una barra de búsqueda por texto, una fila de categorías (intereses)
+ * y un filtro por rango de fechas. Los filtros elegidos viven en el estado de
+ * la pantalla y cada cambio se informa mediante [onBuscar], para que el
+ * ViewModel filtre el listado.
  *
  * @param listaEventos Eventos observados desde [com.example.buscador.viewmodel.EventosViewModel].
  * @param onAbrirDetalleEvento Navega al detalle del evento seleccionado.
@@ -80,6 +90,24 @@ fun EventosScreen(
     // ViewModel conserva la lista filtrada y la pantalla debe mostrar los mismos filtros.
     var textoBusqueda by rememberSaveable { mutableStateOf(value = "") }
     var categoriaSeleccionada by rememberSaveable { mutableStateOf<CategoriaEvento?>(null) }
+    var fechaDesdeMillis by rememberSaveable { mutableStateOf<Long?>(null) }
+    var fechaHastaMillis by rememberSaveable { mutableStateOf<Long?>(null) }
+    var mostrarCalendario by rememberSaveable { mutableStateOf(value = false) }
+
+    // El calendario solo existe mientras mostrarCalendario sea verdadero.
+    if (mostrarCalendario) {
+        DialogoRangoFechas(
+            desdeInicialMillis = fechaDesdeMillis,
+            hastaInicialMillis = fechaHastaMillis,
+            onConfirmar = { desdeNuevo, hastaNuevo ->
+                fechaDesdeMillis = desdeNuevo
+                fechaHastaMillis = hastaNuevo
+                mostrarCalendario = false
+                onBuscar(textoBusqueda, categoriaSeleccionada, desdeNuevo, hastaNuevo)
+            },
+            onCancelar = { mostrarCalendario = false }
+        )
+    }
 
     Scaffold(
         modifier = modifier,
@@ -104,7 +132,7 @@ fun EventosScreen(
                 texto = textoBusqueda,
                 onTextoCambiado = { textoNuevo ->
                     textoBusqueda = textoNuevo
-                    onBuscar(textoNuevo, categoriaSeleccionada, null, null)
+                    onBuscar(textoNuevo, categoriaSeleccionada, fechaDesdeMillis, fechaHastaMillis)
                 },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)
             )
@@ -114,7 +142,18 @@ fun EventosScreen(
                 categoriaSeleccionada = categoriaSeleccionada,
                 onCategoriaSeleccionada = { categoriaNueva ->
                     categoriaSeleccionada = categoriaNueva
-                    onBuscar(textoBusqueda, categoriaNueva, null, null)
+                    onBuscar(textoBusqueda, categoriaNueva, fechaDesdeMillis, fechaHastaMillis)
+                }
+            )
+            // Filtro por rango de fechas: abre el calendario o quita el rango elegido.
+            FilaFiltroFechas(
+                fechaDesdeMillis = fechaDesdeMillis,
+                fechaHastaMillis = fechaHastaMillis,
+                onAbrirCalendario = { mostrarCalendario = true },
+                onQuitarFechas = {
+                    fechaDesdeMillis = null
+                    fechaHastaMillis = null
+                    onBuscar(textoBusqueda, categoriaSeleccionada, null, null)
                 }
             )
             if (listaEventos.isEmpty()) {
@@ -228,6 +267,78 @@ private fun FilaFiltrosCategoria(
                 )
             )
         }
+    }
+}
+
+/**
+ * Fila con el chip que abre el calendario y, si hay un rango elegido, el
+ * botón para quitarlo.
+ *
+ * @param fechaDesdeMillis Inicio del rango elegido; null si no hay.
+ * @param fechaHastaMillis Fin del rango elegido; null si no hay.
+ * @param onAbrirCalendario Se llama al tocar el chip de fechas.
+ * @param onQuitarFechas Se llama al tocar "Quitar fechas".
+ * @param modifier Modificador aplicado a la fila.
+ */
+@Composable
+private fun FilaFiltroFechas(
+    fechaDesdeMillis: Long?,
+    fechaHastaMillis: Long?,
+    onAbrirCalendario: () -> Unit,
+    onQuitarFechas: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hayFechasElegidas = fechaDesdeMillis != null || fechaHastaMillis != null
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        FilterChip(
+            selected = hayFechasElegidas,
+            onClick = onAbrirCalendario,
+            label = { Text(text = describirRangoFechas(fechaDesdeMillis, fechaHastaMillis)) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.DateRange,
+                    contentDescription = "Elegir fechas",
+                    modifier = Modifier.size(size = FilterChipDefaults.IconSize)
+                )
+            },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = DarkGreen,
+                selectedLabelColor = White,
+                selectedLeadingIconColor = White
+            )
+        )
+        if (hayFechasElegidas) {
+            TextButton(onClick = onQuitarFechas) {
+                Text(text = "Quitar fechas", color = DarkGreen)
+            }
+        }
+    }
+}
+
+/**
+ * Convierte el rango elegido en un texto corto para mostrar en el chip.
+ * Las fechas vienen en UTC, por eso el formateador también usa UTC; así el
+ * día que se muestra es el mismo que eligió el usuario en el calendario.
+ *
+ * @return "Fechas" si no hay rango; "dd/MM/yyyy – dd/MM/yyyy" si hay ambos extremos;
+ * "Desde ..." o "Hasta ..." si solo hay uno.
+ */
+private fun describirRangoFechas(desdeMillis: Long?, hastaMillis: Long?): String {
+    if (desdeMillis == null && hastaMillis == null) return "Fechas"
+    val formatoFecha = SimpleDateFormat("dd/MM/yyyy", Locale.forLanguageTag("es-CL")).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+    val textoDesde = desdeMillis?.let { milisegundos -> formatoFecha.format(Date(milisegundos)) }
+    val textoHasta = hastaMillis?.let { milisegundos -> formatoFecha.format(Date(milisegundos)) }
+    return when {
+        textoDesde != null && textoHasta != null -> "$textoDesde – $textoHasta"
+        textoDesde != null -> "Desde $textoDesde"
+        else -> "Hasta $textoHasta"
     }
 }
 
