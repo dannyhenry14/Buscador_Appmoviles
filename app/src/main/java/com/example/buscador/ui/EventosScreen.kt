@@ -13,11 +13,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -26,7 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,9 +58,9 @@ import com.example.buscador.ui.components.BarraSuperiorSeccion
  * expone [onAbrirMenu] (botón hamburguesa) y el detalle de evento como
  * flujo interno de la sección.
  *
- * Incluye una barra de búsqueda: su texto vive en un estado local de la
- * pantalla y cada cambio se informa mediante [onBuscar], para que el
- * ViewModel filtre el listado.
+ * Incluye una barra de búsqueda por texto y una fila de categorías (intereses).
+ * Los filtros elegidos viven en el estado de la pantalla y cada cambio se
+ * informa mediante [onBuscar], para que el ViewModel filtre el listado.
  *
  * @param listaEventos Eventos observados desde [com.example.buscador.viewmodel.EventosViewModel].
  * @param onAbrirDetalleEvento Navega al detalle del evento seleccionado.
@@ -72,8 +75,11 @@ fun EventosScreen(
     onBuscar: (String, CategoriaEvento?, Long?, Long?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Estado local del campo de búsqueda: guarda el texto que escribe el usuario.
-    var textoBusqueda by remember { mutableStateOf(value = "") }
+    // Filtros elegidos por el usuario. Se usa rememberSaveable (y no remember)
+    // para que sobrevivan al abrir el detalle de un evento y volver atrás: el
+    // ViewModel conserva la lista filtrada y la pantalla debe mostrar los mismos filtros.
+    var textoBusqueda by rememberSaveable { mutableStateOf(value = "") }
+    var categoriaSeleccionada by rememberSaveable { mutableStateOf<CategoriaEvento?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -85,8 +91,8 @@ fun EventosScreen(
             )
         }
     ) { paddingInterno ->
-        // Columna raíz: sostiene la barra de búsqueda arriba y el listado (o el
-        // estado vacío) ocupando el espacio restante mediante [Modifier.weight].
+        // Columna raíz: sostiene la barra de búsqueda y los filtros arriba, y el
+        // listado (o el estado vacío) ocupando el espacio restante mediante [Modifier.weight].
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -98,9 +104,18 @@ fun EventosScreen(
                 texto = textoBusqueda,
                 onTextoCambiado = { textoNuevo ->
                     textoBusqueda = textoNuevo
-                    onBuscar(textoNuevo, null, null, null)
+                    onBuscar(textoNuevo, categoriaSeleccionada, null, null)
                 },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            // Fila de categorías (intereses) para filtrar por tipo de evento.
+            FilaFiltrosCategoria(
+                categoriaSeleccionada = categoriaSeleccionada,
+                onCategoriaSeleccionada = { categoriaNueva ->
+                    categoriaSeleccionada = categoriaNueva
+                    onBuscar(textoBusqueda, categoriaNueva, null, null)
+                }
             )
             if (listaEventos.isEmpty()) {
                 // Estado vacío explícito: la UI nunca debe quedar en blanco sin explicación.
@@ -110,7 +125,7 @@ fun EventosScreen(
                         .weight(weight = 1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "No hay eventos disponibles por el momento.", color = Color.Gray)
+                    Text(text = "No se encontraron eventos con esos filtros.", color = Color.Gray)
                 }
             } else {
                 LazyColumn(
@@ -176,6 +191,44 @@ private fun BarraBusquedaVisual(
             unfocusedBorderColor = Color.LightGray
         )
     )
+}
+
+/**
+ * Fila horizontal de chips, uno por cada [CategoriaEvento].
+ *
+ * Funciona como interruptor: tocar un chip lo selecciona; tocar el chip ya
+ * seleccionado lo desmarca y vuelve a mostrar todas las categorías (null).
+ *
+ * @param categoriaSeleccionada Categoría activa, o null si no hay ninguna.
+ * @param onCategoriaSeleccionada Callback con la nueva categoría (o null al desmarcar).
+ * @param modifier Modificador aplicado a la fila.
+ */
+@Composable
+private fun FilaFiltrosCategoria(
+    categoriaSeleccionada: CategoriaEvento?,
+    onCategoriaSeleccionada: (CategoriaEvento?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(space = 8.dp)
+    ) {
+        items(items = CategoriaEvento.entries, key = { categoria -> categoria.name }) { categoria ->
+            val estaSeleccionada = categoria == categoriaSeleccionada
+            FilterChip(
+                selected = estaSeleccionada,
+                onClick = {
+                    onCategoriaSeleccionada(if (estaSeleccionada) null else categoria)
+                },
+                label = { Text(text = categoria.nombreVisible) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = DarkGreen,
+                    selectedLabelColor = White
+                )
+            )
+        }
+    }
 }
 
 /**
