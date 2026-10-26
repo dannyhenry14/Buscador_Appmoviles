@@ -12,6 +12,7 @@ package com.example.buscador.model
  * @property descripcion Resumen o programa de la actividad.
  * @property fecha Fecha legible para el usuario (formato presentacional).
  * @property ubicacion Lugar físico o modalidad donde se realiza el evento.
+ * @property categoria Tipo de evento; es el "interés" por el que el usuario puede filtrar.
  * @property imagenResId Recurso drawable local de la imagen del evento
  * (R.drawable.*); vale 0 cuando el evento no tiene imagen asociada.
  */
@@ -21,5 +22,6 @@ data class Evento(
     val descripcion: String,
     val fecha: String,
     val ubicacion: String,
+    val categoria: CategoriaEvento,
     val imagenResId: Int = 0
 )

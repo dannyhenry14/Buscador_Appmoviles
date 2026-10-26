@@ -1,6 +1,7 @@
 package com.example.buscador.repository
 
 import com.example.buscador.R
+import com.example.buscador.model.CategoriaEvento
 import com.example.buscador.model.Evento
 
 /**
@@ -23,6 +24,7 @@ class EventoRepositoryEnMemoria : EventoRepository {
                 "con casos reales y revisión de normativa vigente.",
             fecha = "12 de noviembre de 2026",
             ubicacion = "Auditorio CENAMAD, Santiago",
+            categoria = CategoriaEvento.SEMINARIO,
             imagenResId = R.drawable.img_seminario
         ),
         Evento(
@@ -32,6 +34,7 @@ class EventoRepositoryEnMemoria : EventoRepository {
                 "aplicando la norma NCh1198 y herramientas de cálculo.",
             fecha = "26 de noviembre de 2026",
             ubicacion = "Laboratorio de Estructuras, Santiago",
+            categoria = CategoriaEvento.TALLER,
             imagenResId = R.drawable.img_taller
         ),
         Evento(
@@ -41,6 +44,7 @@ class EventoRepositoryEnMemoria : EventoRepository {
                 "y proyectos de investigación aplicada del centro.",
             fecha = "10 de diciembre de 2026",
             ubicacion = "Parque de Innovación, Concepción",
+            categoria = CategoriaEvento.FERIA,
             imagenResId = R.drawable.img_feria
         ),
         Evento(
@@ -50,6 +54,7 @@ class EventoRepositoryEnMemoria : EventoRepository {
                 "requisitos para proyectos de construcción sustentable.",
             fecha = "15 de enero de 2027",
             ubicacion = "Modalidad híbrida",
+            categoria = CategoriaEvento.CHARLA,
             imagenResId = R.drawable.img_charla
         )
     )
