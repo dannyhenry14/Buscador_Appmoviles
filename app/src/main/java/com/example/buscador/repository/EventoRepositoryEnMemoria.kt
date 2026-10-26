@@ -23,6 +23,7 @@ class EventoRepositoryEnMemoria : EventoRepository {
             descripcion = "Jornada técnica sobre sistemas constructivos de mediana altura, " +
                 "con casos reales y revisión de normativa vigente.",
             fecha = "12 de noviembre de 2026",
+            fechaMillis = 1794441600000L,
             ubicacion = "Auditorio CENAMAD, Santiago",
             categoria = CategoriaEvento.SEMINARIO,
             imagenResId = R.drawable.img_seminario
@@ -33,6 +34,7 @@ class EventoRepositoryEnMemoria : EventoRepository {
             descripcion = "Taller práctico de dimensionamiento de elementos de madera " +
                 "aplicando la norma NCh1198 y herramientas de cálculo.",
             fecha = "26 de noviembre de 2026",
+            fechaMillis = 1795651200000L,
             ubicacion = "Laboratorio de Estructuras, Santiago",
             categoria = CategoriaEvento.TALLER,
             imagenResId = R.drawable.img_taller
@@ -43,6 +45,7 @@ class EventoRepositoryEnMemoria : EventoRepository {
             descripcion = "Exposición de productos de ingeniería de madera, proveedores " +
                 "y proyectos de investigación aplicada del centro.",
             fecha = "10 de diciembre de 2026",
+            fechaMillis = 1796860800000L,
             ubicacion = "Parque de Innovación, Concepción",
             categoria = CategoriaEvento.FERIA,
             imagenResId = R.drawable.img_feria
@@ -53,6 +56,7 @@ class EventoRepositoryEnMemoria : EventoRepository {
             descripcion = "Actualización sobre certificación de madera estructural y " +
                 "requisitos para proyectos de construcción sustentable.",
             fecha = "15 de enero de 2027",
+            fechaMillis = 1799971200000L,
             ubicacion = "Modalidad híbrida",
             categoria = CategoriaEvento.CHARLA,
             imagenResId = R.drawable.img_charla

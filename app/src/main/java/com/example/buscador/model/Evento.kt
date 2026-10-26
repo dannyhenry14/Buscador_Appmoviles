@@ -11,6 +11,7 @@ package com.example.buscador.model
  * @property titulo Nombre visible del evento en el listado y en el detalle.
  * @property descripcion Resumen o programa de la actividad.
  * @property fecha Fecha legible para el usuario (formato presentacional).
+ * @property fechaMillis Fecha del evento como número (milisegundos desde 1970, en UTC); se usa para filtrar por rango.
  * @property ubicacion Lugar físico o modalidad donde se realiza el evento.
  * @property categoria Tipo de evento; es el "interés" por el que el usuario puede filtrar.
  * @property imagenResId Recurso drawable local de la imagen del evento
@@ -21,6 +22,7 @@ data class Evento(
     val titulo: String,
     val descripcion: String,
     val fecha: String,
+    val fechaMillis: Long,
     val ubicacion: String,
     val categoria: CategoriaEvento,
     val imagenResId: Int = 0
