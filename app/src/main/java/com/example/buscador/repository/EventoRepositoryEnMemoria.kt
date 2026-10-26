@@ -67,4 +67,22 @@ class EventoRepositoryEnMemoria : EventoRepository {
 
     override fun obtenerEventoPorId(idEvento: Long): Evento? =
         catalogoEventos.firstOrNull { evento -> evento.idEvento == idEvento }
+
+    override fun buscarEventos(
+        texto: String,
+        categoria: CategoriaEvento?,
+        fechaDesdeMillis: Long?,
+        fechaHastaMillis: Long?
+    ): List<Evento> {
+        val textoLimpio = texto.trim()
+        return catalogoEventos.filter { evento ->
+            val coincideTexto = textoLimpio.isEmpty() ||
+                    evento.titulo.contains(textoLimpio, ignoreCase = true) ||
+                    evento.descripcion.contains(textoLimpio, ignoreCase = true)
+            val coincideCategoria = categoria == null || evento.categoria == categoria
+            val coincideDesde = fechaDesdeMillis == null || evento.fechaMillis >= fechaDesdeMillis
+            val coincideHasta = fechaHastaMillis == null || evento.fechaMillis <= fechaHastaMillis
+            coincideTexto && coincideCategoria && coincideDesde && coincideHasta
+        }
+    }
 }
