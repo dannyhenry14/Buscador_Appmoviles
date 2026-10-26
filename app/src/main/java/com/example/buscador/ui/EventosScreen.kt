@@ -14,25 +14,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,11 +51,7 @@ import com.example.buscador.ui.theme.LightGrayMap
 import com.example.buscador.ui.theme.NegroTexto
 import com.example.buscador.ui.theme.White
 import com.example.buscador.ui.components.BarraSuperiorSeccion
-import com.example.buscador.ui.components.DialogoRangoFechas
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import com.example.buscador.ui.components.HojaFiltros
 
 /**
  * Pantalla Home de la aplicación: listado de eventos de CENAMAD.
@@ -67,10 +63,10 @@ import java.util.TimeZone
  * expone [onAbrirMenu] (botón hamburguesa) y el detalle de evento como
  * flujo interno de la sección.
  *
- * Incluye una barra de búsqueda por texto, una fila de categorías (intereses)
- * y un filtro por rango de fechas. Los filtros elegidos viven en el estado de
- * la pantalla y cada cambio se informa mediante [onBuscar], para que el
- * ViewModel filtre el listado.
+ * Incluye una barra de búsqueda por texto y un botón de filtros que abre una
+ * hoja inferior con la categoría (interés) y el rango de fechas. Los filtros
+ * elegidos viven en el estado de la pantalla y cada cambio se informa mediante
+ * [onBuscar], para que el ViewModel filtre el listado.
  *
  * @param listaEventos Eventos observados desde [com.example.buscador.viewmodel.EventosViewModel].
  * @param onAbrirDetalleEvento Navega al detalle del evento seleccionado.
@@ -92,20 +88,28 @@ fun EventosScreen(
     var categoriaSeleccionada by rememberSaveable { mutableStateOf<CategoriaEvento?>(null) }
     var fechaDesdeMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var fechaHastaMillis by rememberSaveable { mutableStateOf<Long?>(null) }
-    var mostrarCalendario by rememberSaveable { mutableStateOf(value = false) }
+    // Interruptor de la hoja de filtros: true la muestra, false la oculta.
+    var mostrarFiltros by remember { mutableStateOf(value = false) }
 
-    // El calendario solo existe mientras mostrarCalendario sea verdadero.
-    if (mostrarCalendario) {
-        DialogoRangoFechas(
+    // El botón de filtros se pinta de verde cuando hay algún filtro activo.
+    val hayFiltrosActivos = categoriaSeleccionada != null ||
+            fechaDesdeMillis != null ||
+            fechaHastaMillis != null
+
+    // La hoja solo existe mientras mostrarFiltros sea verdadero.
+    if (mostrarFiltros) {
+        HojaFiltros(
+            categoriaInicial = categoriaSeleccionada,
             desdeInicialMillis = fechaDesdeMillis,
             hastaInicialMillis = fechaHastaMillis,
-            onConfirmar = { desdeNuevo, hastaNuevo ->
+            onAplicar = { categoriaNueva, desdeNuevo, hastaNuevo ->
+                categoriaSeleccionada = categoriaNueva
                 fechaDesdeMillis = desdeNuevo
                 fechaHastaMillis = hastaNuevo
-                mostrarCalendario = false
-                onBuscar(textoBusqueda, categoriaSeleccionada, desdeNuevo, hastaNuevo)
+                mostrarFiltros = false
+                onBuscar(textoBusqueda, categoriaNueva, desdeNuevo, hastaNuevo)
             },
-            onCancelar = { mostrarCalendario = false }
+            onCerrar = { mostrarFiltros = false }
         )
     }
 
@@ -119,43 +123,40 @@ fun EventosScreen(
             )
         }
     ) { paddingInterno ->
-        // Columna raíz: sostiene la barra de búsqueda y los filtros arriba, y el
-        // listado (o el estado vacío) ocupando el espacio restante mediante [Modifier.weight].
+        // Columna raíz: sostiene la fila de búsqueda arriba y el listado (o el
+        // estado vacío) ocupando el espacio restante mediante [Modifier.weight].
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(LightGrayMap)
                 .padding(paddingInterno)
         ) {
-            // Barra de búsqueda anclada bajo la barra superior.
-            BarraBusquedaVisual(
-                texto = textoBusqueda,
-                onTextoCambiado = { textoNuevo ->
-                    textoBusqueda = textoNuevo
-                    onBuscar(textoNuevo, categoriaSeleccionada, fechaDesdeMillis, fechaHastaMillis)
-                },
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            // Fila de categorías (intereses) para filtrar por tipo de evento.
-            FilaFiltrosCategoria(
-                categoriaSeleccionada = categoriaSeleccionada,
-                onCategoriaSeleccionada = { categoriaNueva ->
-                    categoriaSeleccionada = categoriaNueva
-                    onBuscar(textoBusqueda, categoriaNueva, fechaDesdeMillis, fechaHastaMillis)
-                }
-            )
-            // Filtro por rango de fechas: abre el calendario o quita el rango elegido.
-            FilaFiltroFechas(
-                fechaDesdeMillis = fechaDesdeMillis,
-                fechaHastaMillis = fechaHastaMillis,
-                onAbrirCalendario = { mostrarCalendario = true },
-                onQuitarFechas = {
-                    fechaDesdeMillis = null
-                    fechaHastaMillis = null
-                    onBuscar(textoBusqueda, categoriaSeleccionada, null, null)
-                }
-            )
+            // Fila superior: barra de búsqueda a la izquierda y botón de filtros a la derecha.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BarraBusquedaVisual(
+                    texto = textoBusqueda,
+                    onTextoCambiado = { textoNuevo ->
+                        textoBusqueda = textoNuevo
+                        onBuscar(
+                            textoNuevo,
+                            categoriaSeleccionada,
+                            fechaDesdeMillis,
+                            fechaHastaMillis
+                        )
+                    },
+                    modifier = Modifier.weight(weight = 1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                BotonFiltros(
+                    hayFiltrosActivos = hayFiltrosActivos,
+                    onClick = { mostrarFiltros = true }
+                )
+            }
             if (listaEventos.isEmpty()) {
                 // Estado vacío explícito: la UI nunca debe quedar en blanco sin explicación.
                 Box(
@@ -187,12 +188,12 @@ fun EventosScreen(
 }
 
 /**
- * Barra de búsqueda visual de la sección de eventos.
+ * Barra de búsqueda por texto de la sección de eventos.
  *
- * Componente puramente de UI para el MVP: eleva el texto escrito a través de
- * [onTextoCambiado] pero todavía no filtra el listado ni consulta Room. Se usa
- * un OutlinedTextField redondeado sobre fondo blanco con lupa en DarkGreen,
- * coherente con la paleta de TarjetaEvento y la barra superior de la sección.
+ * Eleva el texto escrito a través de [onTextoCambiado]; el filtrado lo hace el
+ * repositorio. Se usa un OutlinedTextField redondeado sobre fondo blanco con
+ * lupa en DarkGreen, coherente con la paleta de TarjetaEvento y la barra
+ * superior de la sección.
  *
  * @param texto Valor actual del campo de búsqueda.
  * @param onTextoCambiado Callback invocado con el nuevo texto al escribir.
@@ -233,112 +234,31 @@ private fun BarraBusquedaVisual(
 }
 
 /**
- * Fila horizontal de chips, uno por cada [CategoriaEvento].
+ * Botón cuadrado con el ícono de filtros, ubicado junto a la barra de búsqueda.
+ * Es blanco cuando no hay filtros y verde cuando hay al menos uno activo, para
+ * que el usuario note de un vistazo que el listado está filtrado.
  *
- * Funciona como interruptor: tocar un chip lo selecciona; tocar el chip ya
- * seleccionado lo desmarca y vuelve a mostrar todas las categorías (null).
- *
- * @param categoriaSeleccionada Categoría activa, o null si no hay ninguna.
- * @param onCategoriaSeleccionada Callback con la nueva categoría (o null al desmarcar).
- * @param modifier Modificador aplicado a la fila.
+ * @param hayFiltrosActivos Verdadero si hay categoría o fechas elegidas.
+ * @param onClick Se llama al tocar el botón (abre la hoja de filtros).
  */
 @Composable
-private fun FilaFiltrosCategoria(
-    categoriaSeleccionada: CategoriaEvento?,
-    onCategoriaSeleccionada: (CategoriaEvento?) -> Unit,
-    modifier: Modifier = Modifier
+private fun BotonFiltros(
+    hayFiltrosActivos: Boolean,
+    onClick: () -> Unit
 ) {
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(space = 8.dp)
-    ) {
-        items(items = CategoriaEvento.entries, key = { categoria -> categoria.name }) { categoria ->
-            val estaSeleccionada = categoria == categoriaSeleccionada
-            FilterChip(
-                selected = estaSeleccionada,
-                onClick = {
-                    onCategoriaSeleccionada(if (estaSeleccionada) null else categoria)
-                },
-                label = { Text(text = categoria.nombreVisible) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = DarkGreen,
-                    selectedLabelColor = White
-                )
-            )
-        }
-    }
-}
-
-/**
- * Fila con el chip que abre el calendario y, si hay un rango elegido, el
- * botón para quitarlo.
- *
- * @param fechaDesdeMillis Inicio del rango elegido; null si no hay.
- * @param fechaHastaMillis Fin del rango elegido; null si no hay.
- * @param onAbrirCalendario Se llama al tocar el chip de fechas.
- * @param onQuitarFechas Se llama al tocar "Quitar fechas".
- * @param modifier Modificador aplicado a la fila.
- */
-@Composable
-private fun FilaFiltroFechas(
-    fechaDesdeMillis: Long?,
-    fechaHastaMillis: Long?,
-    onAbrirCalendario: () -> Unit,
-    onQuitarFechas: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val hayFechasElegidas = fechaDesdeMillis != null || fechaHastaMillis != null
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        FilterChip(
-            selected = hayFechasElegidas,
-            onClick = onAbrirCalendario,
-            label = { Text(text = describirRangoFechas(fechaDesdeMillis, fechaHastaMillis)) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Filled.DateRange,
-                    contentDescription = "Elegir fechas",
-                    modifier = Modifier.size(size = FilterChipDefaults.IconSize)
-                )
-            },
-            colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = DarkGreen,
-                selectedLabelColor = White,
-                selectedLeadingIconColor = White
-            )
+    FilledIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(size = 56.dp),
+        shape = RoundedCornerShape(size = 12.dp),
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = if (hayFiltrosActivos) DarkGreen else White,
+            contentColor = if (hayFiltrosActivos) White else DarkGreen
         )
-        if (hayFechasElegidas) {
-            TextButton(onClick = onQuitarFechas) {
-                Text(text = "Quitar fechas", color = DarkGreen)
-            }
-        }
-    }
-}
-
-/**
- * Convierte el rango elegido en un texto corto para mostrar en el chip.
- * Las fechas vienen en UTC, por eso el formateador también usa UTC; así el
- * día que se muestra es el mismo que eligió el usuario en el calendario.
- *
- * @return "Fechas" si no hay rango; "dd/MM/yyyy – dd/MM/yyyy" si hay ambos extremos;
- * "Desde ..." o "Hasta ..." si solo hay uno.
- */
-private fun describirRangoFechas(desdeMillis: Long?, hastaMillis: Long?): String {
-    if (desdeMillis == null && hastaMillis == null) return "Fechas"
-    val formatoFecha = SimpleDateFormat("dd/MM/yyyy", Locale.forLanguageTag("es-CL")).apply {
-        timeZone = TimeZone.getTimeZone("UTC")
-    }
-    val textoDesde = desdeMillis?.let { milisegundos -> formatoFecha.format(Date(milisegundos)) }
-    val textoHasta = hastaMillis?.let { milisegundos -> formatoFecha.format(Date(milisegundos)) }
-    return when {
-        textoDesde != null && textoHasta != null -> "$textoDesde – $textoHasta"
-        textoDesde != null -> "Desde $textoDesde"
-        else -> "Hasta $textoHasta"
+    ) {
+        Icon(
+            imageVector = Icons.Filled.FilterList,
+            contentDescription = "Abrir filtros"
+        )
     }
 }
 
