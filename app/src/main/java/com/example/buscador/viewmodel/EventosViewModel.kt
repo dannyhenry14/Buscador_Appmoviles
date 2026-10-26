@@ -6,6 +6,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.buscador.BuscadorApplication
 import com.example.buscador.repository.EventoRepository
+import com.example.buscador.model.CategoriaEvento
 import com.example.buscador.model.Evento
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,12 +34,30 @@ class EventosViewModel(
     fun obtenerEventoPorId(idEvento: Long): Evento? =
         repositorioEvento.obtenerEventoPorId(idEvento)
 
+    /**
+     * Aplica los filtros de búsqueda y publica el resultado a la UI.
+     * Los filtros en null no se aplican (ver [EventoRepository.buscarEventos]).
+     */
+    fun buscarEventos(
+        texto: String,
+        categoria: CategoriaEvento?,
+        fechaDesdeMillis: Long?,
+        fechaHastaMillis: Long?
+    ) {
+        _listaEventos.value = repositorioEvento.buscarEventos(
+            texto = texto,
+            categoria = categoria,
+            fechaDesdeMillis = fechaDesdeMillis,
+            fechaHastaMillis = fechaHastaMillis
+        )
+    }
+
     companion object {
         /** Factory manual: inyecta el repositorio del contenedor de la Application. */
         val Fabrica: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val aplicacion = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
-                    as BuscadorApplication
+                        as BuscadorApplication
                 EventosViewModel(aplicacion.contenedorAplicacion.repositorioEvento)
             }
         }
