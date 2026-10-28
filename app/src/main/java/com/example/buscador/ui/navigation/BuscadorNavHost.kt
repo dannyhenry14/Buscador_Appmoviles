@@ -38,8 +38,8 @@ import kotlinx.coroutines.launch
  *   consultas ni pierdan estado al navegar.
  * - El estado se recolecta con `collectAsStateWithLifecycle` para detener la
  *   observación cuando la pantalla no está visible (ahorro de recursos).
- * - Login es el destino inicial; al ingresar se elimina del back stack con
- *   `popUpTo(...)` para que "Atrás" no regrese al formulario. Registro es un flujo
+ * - El destino inicial depende de la sesión guardada: Eventos si hay una sesión
+ *   abierta y Login si no. Desde Login, al ingresar se elimina del back stack con
  *   interno del login: se alcanza con "Crear cuenta" y, al confirmar el alta en
  *   Room, abre la sesión y navega directo a Eventos limpiando todo el grafo.
  * - Las secciones de nivel superior viven dentro de un `ModalNavigationDrawer`
@@ -104,7 +104,11 @@ fun BuscadorNavHost(
     ) {
         NavHost(
             navController = navController,
-            startDestination = RutaAplicacion.Login.ruta,
+            startDestination = if (viewModelUsuario.iniciaConSesionAbierta) {
+                RutaAplicacion.Eventos.ruta
+            } else {
+                RutaAplicacion.Login.ruta
+            },
             modifier = modifier
         ) {
             composable(
