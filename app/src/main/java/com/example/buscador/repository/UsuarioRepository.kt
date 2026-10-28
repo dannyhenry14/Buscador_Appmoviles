@@ -35,4 +35,13 @@ interface UsuarioRepository {
 
     /** Elimina un usuario de la base local. */
     suspend fun eliminarUsuario(usuario: Usuario)
+
+    /** Devuelve el correo de la sesión guardada en el teléfono, o null si no hay sesión abierta. */
+    fun obtenerCorreoSesionGuardada(): String?
+
+    /** Guarda el correo del usuario que inició sesión, para que siga abierta al cerrar la app. */
+    fun guardarCorreoSesion(correoElectronico: String)
+
+    /** Borra la sesión guardada; se usa al cerrar sesión o al entrar como invitado. */
+    fun borrarSesionGuardada()
 }

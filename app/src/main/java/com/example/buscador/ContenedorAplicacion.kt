@@ -2,6 +2,7 @@ package com.example.buscador
 
 import android.content.Context
 import com.example.buscador.repository.AlmacenFotosPerfil
+import com.example.buscador.repository.AlmacenSesion
 import com.example.buscador.repository.BuscadorDatabase
 import com.example.buscador.repository.EventoRepository
 import com.example.buscador.repository.EventoRepositoryEnMemoria
@@ -20,9 +21,13 @@ class ContenedorAplicacion(contexto: Context) {
     /** Instancia única de Room; crear la base de datos es costoso, no debe repetirse. */
     private val baseDeDatos: BuscadorDatabase = BuscadorDatabase.obtenerInstancia(contexto)
 
-    /** Repositorio de usuarios respaldado por Room. */
+    /** Almacén de la sesión abierta; recuerda el correo del usuario aunque se cierre la app. */
+    private val almacenSesion: AlmacenSesion = AlmacenSesion(contexto)
+
+    /** Repositorio de usuarios respaldado por Room y por el almacén de sesión. */
     val repositorioUsuario: UsuarioRepository = UsuarioRepositoryImpl(
-        daoUsuario = baseDeDatos.usuarioDao()
+        daoUsuario = baseDeDatos.usuarioDao(),
+        almacenSesion = almacenSesion
     )
 
     /** Repositorio de eventos; por ahora en memoria, intercambiable por Room/API. */

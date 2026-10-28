@@ -12,10 +12,12 @@ import kotlinx.coroutines.flow.map
  * Responsabilidades:
  * - Traducir entidades de Room a modelos de dominio y viceversa.
  * - Decidir si una escritura es INSERT o UPDATE (según el id del usuario).
+ * - Delegar en [AlmacenSesion] el guardado de la sesión abierta.
  * No contiene lógica de UI ni de estado: eso pertenece al ViewModel.
  */
 class UsuarioRepositoryImpl(
-    private val daoUsuario: UsuarioDao
+    private val daoUsuario: UsuarioDao,
+    private val almacenSesion: AlmacenSesion
 ) : UsuarioRepository {
 
     override fun observarUsuarioPrincipal(): Flow<Usuario?> =
@@ -53,5 +55,15 @@ class UsuarioRepositoryImpl(
 
     override suspend fun eliminarUsuario(usuario: Usuario) {
         daoUsuario.eliminarUsuario(usuario.aEntidadRoom())
+    }
+
+    override fun obtenerCorreoSesionGuardada(): String? = almacenSesion.leerCorreoSesion()
+
+    override fun guardarCorreoSesion(correoElectronico: String) {
+        almacenSesion.guardarCorreoSesion(correoElectronico)
+    }
+
+    override fun borrarSesionGuardada() {
+        almacenSesion.borrarSesion()
     }
 }
