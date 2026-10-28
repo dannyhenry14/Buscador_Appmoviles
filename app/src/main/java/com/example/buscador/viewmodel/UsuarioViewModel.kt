@@ -77,9 +77,9 @@ data class EstadoRegistro(
     /** El botón "Crear cuenta" solo se habilita con los tres campos sin errores. */
     val formularioEsValido: Boolean
         get() = nombre.isNotBlank() &&
-            errorNombre == null &&
-            correo.isNotBlank() && errorCorreo == null &&
-            contrasena.isNotBlank() && errorContrasena == null
+                errorNombre == null &&
+                correo.isNotBlank() && errorCorreo == null &&
+                contrasena.isNotBlank() && errorContrasena == null
 }
 
 /**
@@ -107,8 +107,20 @@ class UsuarioViewModel(
      * Correo normalizado del usuario autenticado; `null` equivale a sin sesión
      * (invitado o cierre de sesión). Es la única fuente de identidad de la sesión:
      * no se guardan credenciales ni perfiles en memoria.
+     *
+     * Parte con el correo guardado en el teléfono (si lo hay), de modo que la sesión
+     * sobreviva al cierre completo de la app.
      */
-    private val _correoUsuarioAutenticado = MutableStateFlow<String?>(null)
+    private val _correoUsuarioAutenticado = MutableStateFlow(
+        repositorioUsuario.obtenerCorreoSesionGuardada()
+    )
+
+    /**
+     * `true` si al crear el ViewModel ya existía una sesión guardada.
+     * Se calcula una sola vez: el NavHost la usa para elegir la pantalla inicial
+     * (Eventos o Login) y no debe cambiar mientras la app está abierta.
+     */
+    val iniciaConSesionAbierta: Boolean = _correoUsuarioAutenticado.value != null
 
     /**
      * Usuario activo observado desde Room según el correo de la sesión.
@@ -265,8 +277,8 @@ class UsuarioViewModel(
             repositorioUsuario.buscarUsuarioPorCorreo(correoNormalizado)
         }
         val ingresoValido = usuarioRegistrado != null &&
-            usuarioRegistrado.contrasena.isNotBlank() &&
-            usuarioRegistrado.contrasena == contrasena.trim()
+                usuarioRegistrado.contrasena.isNotBlank() &&
+                usuarioRegistrado.contrasena == contrasena.trim()
         _credencialesIncorrectas.value = !ingresoValido
         return ingresoValido
     }
@@ -283,11 +295,15 @@ class UsuarioViewModel(
      * porque el usuario pasó por el formulario de registro. Aquí solo se fija el
      * correo de sesión; [usuarioActual] comienza a observar esa fila en Room y
      * "Mi perfil" muestra los datos reales sin escritura adicional.
+     *
+     * Además guarda el correo (nunca la contraseña) en el teléfono para que la
+     * sesión siga abierta aunque se cierre la app.
      */
     fun registrarIngreso(correoElectronico: String) {
         val correoNormalizado = correoElectronico.trim().lowercase(Locale.ROOT)
         if (!ValidadorPerfil.esCorreoValido(correoNormalizado)) return
         _correoUsuarioAutenticado.value = correoNormalizado
+        repositorioUsuario.guardarCorreoSesion(correoNormalizado)
     }
 
     /**
@@ -296,9 +312,11 @@ class UsuarioViewModel(
      * Dejar el correo de sesión en `null` hace que [usuarioActual] emita `null`
      * en memoria sin borrar filas de Room: "Mi perfil" muestra su estado vacío
      * aunque existan perfiles persistidos de ingresos anteriores.
+     * También borra la sesión guardada: un invitado no debe reabrirse como usuario.
      */
     fun ingresarComoInvitado() {
         _correoUsuarioAutenticado.value = null
+        repositorioUsuario.borrarSesionGuardada()
     }
 
     /**
@@ -307,9 +325,11 @@ class UsuarioViewModel(
      * El perfil persistido no se borra de Room: solo deja de exponerse a la UI
      * hasta el próximo [registrarIngreso], de modo que volver a ingresar con el
      * mismo correo y contraseña recupera los datos tal como quedaron.
+     * Además borra la sesión guardada, así la próxima apertura de la app va al Login.
      */
     fun cerrarSesion() {
         _correoUsuarioAutenticado.value = null
+        repositorioUsuario.borrarSesionGuardada()
     }
 
     /**
@@ -470,7 +490,7 @@ class UsuarioViewModel(
             "La contraseña es obligatoria."
         private const val MENSAJE_CONTRASENA_CORTA =
             "La contraseña debe tener al menos " +
-                "${ValidadorPerfil.LONGITUD_MINIMA_CONTRASENA} caracteres."
+                    "${ValidadorPerfil.LONGITUD_MINIMA_CONTRASENA} caracteres."
         private const val MENSAJE_ERROR_GENERICO =
             "No se pudo guardar el perfil. Inténtalo nuevamente."
         private const val MENSAJE_ERROR_REGISTRO_GENERICO =
@@ -483,7 +503,7 @@ class UsuarioViewModel(
         val Fabrica: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val aplicacion = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
-                    as BuscadorApplication
+                        as BuscadorApplication
                 UsuarioViewModel(
                     repositorioUsuario = aplicacion.contenedorAplicacion.repositorioUsuario
                 )
