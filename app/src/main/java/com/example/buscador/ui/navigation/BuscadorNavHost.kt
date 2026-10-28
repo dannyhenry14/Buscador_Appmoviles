@@ -242,17 +242,7 @@ fun BuscadorNavHost(
                     estaCargando = estaCargandoPerfil,
                     onEditarPerfil = { navController.navigate(RutaAplicacion.EditarPerfil.ruta) },
                     onRegistrarUsuario = {
-                        // El invitado no crea perfil directamente: el registro comienza
-                        // en el login, al que se vuelve limpiando el back stack y con el
-                        // aviso que explica cómo crear la cuenta.
-                        navController.navigate(
-                            RutaAplicacion.Login.crearRutaConAviso(
-                                aviso = RutaAplicacion.Login.AVISO_REGISTRO_INVITADO
-                            )
-                        ) {
-                            popUpTo(navController.graph.id) { inclusive = true }
-                            launchSingleTop = true
-                        }
+                        navController.navigate(RutaAplicacion.Registro.ruta)
                     },
                     onCerrarSesion = {
                         // Confirmado el diálogo: la sesión termina en el ViewModel
