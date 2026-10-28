@@ -125,7 +125,9 @@ fun BuscadorNavHost(
                     // el argumento solo aporta mensajes contextuales.
                     avisoRegistro = entradaLogin.arguments
                         ?.getString(RutaAplicacion.Login.ARGUMENTO_AVISO)
-                        ?.takeIf { aviso -> aviso.isNotBlank() },
+                        ?.takeIf { aviso ->
+                            aviso.isNotBlank() && aviso != RutaAplicacion.Login.MARCADOR_AVISO_SIN_VALOR
+                        },
                     credencialesIncorrectas = credencialesIncorrectas,
                     onLoginSuccess = { correoElectronico, contrasena ->
                         // Autenticación real: el ViewModel consulta la tabla "usuarios"

@@ -26,6 +26,13 @@ sealed class RutaAplicacion(val ruta: String) {
         /** Nombre del argumento opcional que viaja en la ruta del login. */
         const val ARGUMENTO_AVISO = "aviso"
 
+        /**
+         * Texto literal que Navigation entrega cuando se abre el login sin rellenar el
+         * argumento; no es un aviso real y la pantalla debe ignorarlo.
+         */
+        const val MARCADOR_AVISO_SIN_VALOR = "{aviso}"
+
+
         /** Aviso para el invitado que quiere registrar un usuario desde su perfil. */
         const val AVISO_REGISTRO_INVITADO =
             "Para registrar tu usuario, toca \"Crear cuenta\" y elige tus credenciales."
