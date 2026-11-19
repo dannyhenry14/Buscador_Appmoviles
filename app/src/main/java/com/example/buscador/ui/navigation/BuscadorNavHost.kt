@@ -241,6 +241,9 @@ fun BuscadorNavHost(
                     usuario = usuarioActual,
                     estaCargando = estaCargandoPerfil,
                     onEditarPerfil = { navController.navigate(RutaAplicacion.EditarPerfil.ruta) },
+                    onIniciarSesion = {
+                        navController.navigate(RutaAplicacion.Login.ruta)
+                    },
                     onRegistrarUsuario = {
                         navController.navigate(RutaAplicacion.Registro.ruta)
                     },

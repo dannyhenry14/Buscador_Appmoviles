@@ -47,9 +47,8 @@ import com.example.buscador.ui.components.FotoPerfil
  *
  * Presenta dos estados excluyentes: para cuentas registradas muestra los
  * datos persistidos en Room (foto, nombre, biografía) con "Editar perfil" y
- * "Cerrar sesión"; para invitados muestra solo el aviso "Estás navegando
- * como invitado" y el acceso a "Registrar usuario", sin biografía ni sesión
- * que cerrar.
+ * "Cerrar sesión"; para invitados muestra el aviso "Estás navegando como invitado"
+ * y permite "Iniciar sesión" con una cuenta existente o "Registrar usuario".
  *
  * Es una pantalla de solo lectura: el usuario llega desde
  * [com.example.buscador.viewmodel.UsuarioViewModel] a través del NavHost.
@@ -63,8 +62,8 @@ import com.example.buscador.ui.components.FotoPerfil
  *   a un invitado (o Room aún no tiene fila), lo que activa la vista invitado.
  * @param estaCargando `true` mientras Room no entrega la primera lectura.
  * @param onEditarPerfil Navega al formulario de edición del perfil.
- * @param onRegistrarUsuario Devuelve al login con el aviso de registro; es el
- *   único camino que ofrece la vista invitado.
+ * @param onIniciarSesion Navega al login para ingresar con una cuenta existente.
+ * @param onRegistrarUsuario Navega al registro para crear una cuenta nueva.
  * @param onCerrarSesion Termina la sesión y devuelve al login; la pantalla
  *   pide confirmación con un diálogo antes de ejecutarla.
  * @param onAbrirMenu Abre el menú lateral de navegación entre secciones.
@@ -74,6 +73,7 @@ fun MiPerfilScreen(
     usuario: Usuario?,
     estaCargando: Boolean,
     onEditarPerfil: () -> Unit,
+    onIniciarSesion: () -> Unit,
     onRegistrarUsuario: () -> Unit,
     onCerrarSesion: () -> Unit,
     onAbrirMenu: () -> Unit,
@@ -120,9 +120,9 @@ fun MiPerfilScreen(
                 CircularProgressIndicator(color = DarkGreen)
             }
         } else if (usuario == null) {
-            // Invitado: sin fila en Room ni sesión activa. La vista no expone
-            // biografía ni cierre de sesión; solo el acceso al registro.
+            // Invitado: sin fila en Room ni sesión activa. Ofrece iniciar sesión o registrarse.
             VistaInvitado(
+                onIniciarSesion = onIniciarSesion,
                 onRegistrarUsuario = onRegistrarUsuario,
                 modifier = Modifier.padding(paddingInterno)
             )
@@ -141,11 +141,12 @@ fun MiPerfilScreen(
  * Vista del perfil para invitados: sin datos propios ni sesión que cerrar.
  *
  * Reemplaza por completo la vista registrada: no muestra biografía ni botón
- * de cierre de sesión, y ofrece un único camino principal ("Registrar
- * usuario") que devuelve al login con el aviso de registro.
+ * de cierre de sesión. Ofrece dos opciones: "Iniciar sesión" (para ingresar
+ * con una cuenta existente) o "Registrar usuario" (para crear una cuenta nueva).
  */
 @Composable
 private fun VistaInvitado(
+    onIniciarSesion: () -> Unit,
     onRegistrarUsuario: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -173,23 +174,38 @@ private fun VistaInvitado(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Registra un usuario para guardar tu foto, tu nombre y tu " +
-                "biografía, y poder cerrar sesión cuando quieras.",
+            text = "Inicia sesión con tu cuenta o registra un nuevo usuario " +
+                "para guardar tu foto, tu nombre y tu biografía.",
             fontSize = 14.sp,
             color = Color.Gray,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(32.dp))
         Button(
-            onClick = onRegistrarUsuario,
+            onClick = onIniciarSesion,
             colors = ButtonDefaults.buttonColors(containerColor = YellowDuoc),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
             Text(
-                text = "Registrar usuario",
+                text = "Iniciar sesión",
                 color = Color.Black,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = onRegistrarUsuario,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkGreen),
+            border = BorderStroke(width = 1.dp, color = DarkGreen),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Text(
+                text = "Registrar usuario",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
