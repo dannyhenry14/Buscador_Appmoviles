@@ -53,6 +53,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.gson)
     // Procesador de anotaciones de Room: genera el código de DAO/Database en tiempo de compilación
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)

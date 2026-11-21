@@ -7,6 +7,7 @@
         con ActivityResultContracts.RequestPermission antes de abrir TakePicture.
         La galería usa Photo Picker y no necesita permisos de almacenamiento.
     -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
 
     <!-- La app sigue siendo instalable en equipos sin cámara (solo se desactiva la captura). -->

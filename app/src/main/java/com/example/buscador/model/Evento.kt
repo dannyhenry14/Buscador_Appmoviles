@@ -25,5 +25,6 @@ data class Evento(
     val fechaMillis: Long,
     val ubicacion: String,
     val categoria: CategoriaEvento,
-    val imagenResId: Int = 0
+    val imagenResId: Int = 0,
+    val imagenUrl: String? = null
 )

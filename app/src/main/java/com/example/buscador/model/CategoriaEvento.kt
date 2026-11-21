@@ -9,5 +9,9 @@ enum class CategoriaEvento(val nombreVisible: String) {
     SEMINARIO("Seminario"),
     TALLER("Taller"),
     FERIA("Feria"),
-    CHARLA("Charla")
+    CHARLA("Charla"),
+
+    EXPOSICION("Exposición"),
+
+    CONGRESO("Congreso")
 }
