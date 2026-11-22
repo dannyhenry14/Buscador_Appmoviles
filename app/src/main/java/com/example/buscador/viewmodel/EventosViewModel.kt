@@ -12,6 +12,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import com.example.buscador.repository.ClimaRepository
 
@@ -27,9 +29,41 @@ class EventosViewModel(
     private val repositorioClima: ClimaRepository
 ) : ViewModel() {
 
-    /** Listado de eventos publicado a la UI; inmutable desde fuera del ViewModel. */
-    private val _listaEventos = MutableStateFlow<List<Evento>>(emptyList())
-    val listaEventos: StateFlow<List<Evento>> = _listaEventos.asStateFlow()
+    /** Listado de eventos cargado desde la API. */
+    private val _todosLosEventos = MutableStateFlow<List<Evento>>(emptyList())
+    
+    /** Estados de filtros. */
+    private val _textoBusqueda = MutableStateFlow("")
+    private val _filtrosCategoria = MutableStateFlow<CategoriaEvento?>(null)
+    private val _filtrosFechaDesde = MutableStateFlow<Long?>(null)
+    private val _filtrosFechaHasta = MutableStateFlow<Long?>(null)
+    
+    /** Combina los eventos remotos con los filtros de búsqueda. */
+    val listaEventos: StateFlow<List<Evento>> = combine(
+        _todosLosEventos,
+        _textoBusqueda,
+        _filtrosCategoria,
+        _filtrosFechaDesde,
+        _filtrosFechaHasta
+    ) { eventos, texto, categoria, fechaDesde, fechaHasta ->
+        val textoLimpio = texto.trim()
+        eventos.filter { evento ->
+            val coincideTexto = textoLimpio.isEmpty() ||
+                evento.titulo.contains(textoLimpio, ignoreCase = true) ||
+                evento.descripcion.contains(textoLimpio, ignoreCase = true) ||
+                evento.ubicacion.contains(textoLimpio, ignoreCase = true)
+            
+            val coincideCategoria = categoria == null || evento.categoria == categoria
+            val coincideDesde = fechaDesde == null || evento.fechaMillis >= fechaDesde
+            val coincideHasta = fechaHasta == null || evento.fechaMillis <= fechaHasta
+            
+            coincideTexto && coincideCategoria && coincideDesde && coincideHasta
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     private val _cargando = MutableStateFlow(false)
     val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
@@ -40,8 +74,16 @@ class EventosViewModel(
     private val _clima = MutableStateFlow<com.example.buscador.model.ClimaActual?>(null)
     val clima: StateFlow<com.example.buscador.model.ClimaActual?> = _clima.asStateFlow()
 
+    private var eventosCargados = false
+    
     init {
-        cargarTodosLosEventos()
+        cargarDatosIniciales()
+    }
+    
+    private fun cargarDatosIniciales() {
+        if (!eventosCargados) {
+            cargarTodosLosEventos()
+        }
         cargarClimaActual()
     }
     
@@ -52,17 +94,18 @@ class EventosViewModel(
     }
 
     /**
-     * Carga todos los eventos de la API inicializando la pantalla.
+     * Carga todos los eventos de la API. Se ejecuta una sola vez.
      */
     fun cargarTodosLosEventos() {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
             try {
-                _listaEventos.value = repositorioEvento.obtenerTodosLosEventos()
+                _todosLosEventos.value = repositorioEvento.obtenerTodosLosEventos()
+                eventosCargados = true
             } catch (e: Exception) {
                 _error.value = "No se pudieron cargar los eventos: ${e.message}"
-                _listaEventos.value = emptyList()
+                _todosLosEventos.value = emptyList()
             } finally {
                 _cargando.value = false
             }
@@ -71,17 +114,14 @@ class EventosViewModel(
 
     /**
      * Devuelve el evento solicitado buscando en el listado cargado en memoria.
-     * Al usar API remota, los eventos ya se descargaron al entrar a la pantalla principal.
-     *
      * @return el evento o null cuando el id no existe.
      */
     fun obtenerEventoPorId(idEvento: Long): Evento? {
-        return _listaEventos.value.firstOrNull { it.idEvento == idEvento }
+        return _todosLosEventos.value.firstOrNull { it.idEvento == idEvento }
     }
 
     /**
      * Aplica los filtros de búsqueda y publica el resultado a la UI.
-     * Los filtros en null no se aplican (ver [EventoRepository.buscarEventos]).
      */
     fun buscarEventos(
         texto: String,
@@ -89,23 +129,10 @@ class EventosViewModel(
         fechaDesdeMillis: Long?,
         fechaHastaMillis: Long?
     ) {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                _listaEventos.value = repositorioEvento.buscarEventos(
-                    texto = texto,
-                    categoria = categoria,
-                    fechaDesdeMillis = fechaDesdeMillis,
-                    fechaHastaMillis = fechaHastaMillis
-                )
-            } catch (e: Exception) {
-                _error.value = "Error al buscar eventos: ${e.message}"
-                _listaEventos.value = emptyList()
-            } finally {
-                _cargando.value = false
-            }
-        }
+        _textoBusqueda.value = texto
+        _filtrosCategoria.value = categoria
+        _filtrosFechaDesde.value = fechaDesdeMillis
+        _filtrosFechaHasta.value = fechaHastaMillis
     }
 
     companion object {

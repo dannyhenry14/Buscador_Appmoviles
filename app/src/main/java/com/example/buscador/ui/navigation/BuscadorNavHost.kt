@@ -88,14 +88,15 @@ fun BuscadorNavHost(
             MenuLateral(
                 rutaSeleccionada = rutaActual,
                 onNavegarASeccion = { rutaDestino ->
-                    // Se cierra el panel y se navega con saveState/restoreState
-                    // para conservar el estado de cada sección al volver.
+                    // Se cierra el panel y se navega al destino.
+                    // Evita amontonar backstacks, usando el startDestination como ancla.
                     alcanceCorrutinas.launch {
                         estadoMenuLateral.close()
                         navController.navigate(rutaDestino.ruta) {
-                            popUpTo(RutaAplicacion.Eventos.ruta) { saveState = true }
+                            popUpTo(navController.graph.startDestinationId) {
+                                inclusive = false
+                            }
                             launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 }
@@ -105,7 +106,7 @@ fun BuscadorNavHost(
         NavHost(
             navController = navController,
             startDestination = if (viewModelUsuario.iniciaConSesionAbierta) {
-                RutaAplicacion.Eventos.ruta
+                RutaAplicacion.Inicio.ruta
             } else {
                 RutaAplicacion.Login.ruta
             },
@@ -143,7 +144,7 @@ fun BuscadorNavHost(
                                 // La sesión queda ligada al correo autenticado:
                                 // "Mi perfil" observa la fila real de ese usuario.
                                 viewModelUsuario.registrarIngreso(correoElectronico)
-                                navController.navigate(RutaAplicacion.Eventos.ruta) {
+                                navController.navigate(RutaAplicacion.Inicio.ruta) {
                                     popUpTo(RutaAplicacion.Login.ruta) { inclusive = true }
                                     launchSingleTop = true
                                 }
@@ -155,7 +156,7 @@ fun BuscadorNavHost(
                         // "Mi perfil" muestra su estado vacío sin arrastrar la fila
                         // persistida en Room.
                         viewModelUsuario.ingresarComoInvitado()
-                        navController.navigate(RutaAplicacion.Eventos.ruta) {
+                        navController.navigate(RutaAplicacion.Inicio.ruta) {
                             popUpTo(RutaAplicacion.Login.ruta) { inclusive = true }
                             launchSingleTop = true
                         }
@@ -179,11 +180,11 @@ fun BuscadorNavHost(
                     onRegistrar = viewModelUsuario::registrarUsuario,
                     onRegistroExitoso = { correoRegistrado ->
                         // Room confirmó el alta: se abre la sesión con el correo
-                        // recién creado y se navega al Home limpiando login y registro
+                        // recién creado y se navega al Inicio limpiando login y registro
                         // del back stack (popUpTo Login inclusive también descarta
                         // Registro, que está por encima).
                         viewModelUsuario.registrarIngreso(correoRegistrado)
-                        navController.navigate(RutaAplicacion.Eventos.ruta) {
+                        navController.navigate(RutaAplicacion.Inicio.ruta) {
                             popUpTo(RutaAplicacion.Login.ruta) { inclusive = true }
                             launchSingleTop = true
                         }
@@ -193,12 +194,28 @@ fun BuscadorNavHost(
                 )
             }
 
-            composable(route = RutaAplicacion.Eventos.ruta) {
+            composable(route = RutaAplicacion.Inicio.ruta) {
                 val climaActual by viewModelEventos.clima.collectAsStateWithLifecycle()
+                val errorEventos by viewModelEventos.error.collectAsStateWithLifecycle()
                 
+                com.example.buscador.ui.InicioScreen(
+                    climaActual = climaActual,
+                    eventosDestacados = listaEventos.take(2),
+                    errorCarga = errorEventos,
+                    onReintentarCarga = viewModelEventos::cargarTodosLosEventos,
+                    onAbrirMenu = abrirMenuLateral,
+                    onIrAEventos = { navController.navigate(RutaAplicacion.Eventos.ruta) },
+                    onIrAMapa = { navController.navigate(RutaAplicacion.Mapa.ruta) },
+                    onIrASobreNosotros = { navController.navigate(RutaAplicacion.SobreNosotros.ruta) },
+                    onAbrirDetalleEvento = { idEvento -> 
+                        navController.navigate(RutaAplicacion.DetalleEvento.crearRuta(idEvento)) 
+                    }
+                )
+            }
+
+            composable(route = RutaAplicacion.Eventos.ruta) {
                 EventosScreen(
                     listaEventos = listaEventos,
-                    climaActual = climaActual,
                     onAbrirDetalleEvento = { idEvento ->
                         navController.navigate(RutaAplicacion.DetalleEvento.crearRuta(idEvento))
                     },

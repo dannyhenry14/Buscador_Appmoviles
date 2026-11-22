@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
@@ -43,9 +44,14 @@ private data class ItemMenuLateral(
 /** Secciones navegables desde el menú, en el orden en que se muestran. */
 private val itemsMenuLateral = listOf(
     ItemMenuLateral(
-        rutaDestino = RutaAplicacion.Eventos,
+        rutaDestino = RutaAplicacion.Inicio,
         etiqueta = "Inicio",
         icono = Icons.Filled.Home
+    ),
+    ItemMenuLateral(
+        rutaDestino = RutaAplicacion.Eventos,
+        etiqueta = "Eventos",
+        icono = Icons.Filled.DateRange
     ),
     ItemMenuLateral(
         rutaDestino = RutaAplicacion.Mapa,

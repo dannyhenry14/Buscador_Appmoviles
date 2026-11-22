@@ -45,6 +45,9 @@ sealed class RutaAplicacion(val ruta: String) {
     /** Formulario de alta de cuenta: nombre, correo y contraseña persistidos en Room. */
     data object Registro : RutaAplicacion(ruta = "registro")
 
+    /** Dashboard principal (Inicio). */
+    data object Inicio : RutaAplicacion(ruta = "inicio")
+
     /** Home de la aplicación: listado de eventos de CENAMAD. */
     data object Eventos : RutaAplicacion(ruta = "eventos")
 
@@ -77,7 +80,7 @@ sealed class RutaAplicacion(val ruta: String) {
          * flujos internos que se resuelven con "Volver".
          */
         val seccionesConMenu: List<RutaAplicacion> = listOf(
-            Eventos, Mapa, SobreNosotros, MiPerfil
+            Inicio, Eventos, Mapa, SobreNosotros, MiPerfil
         )
     }
 }
