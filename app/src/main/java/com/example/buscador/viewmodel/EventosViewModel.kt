@@ -66,7 +66,6 @@ class EventosViewModel(
     )
 
     private val _cargando = MutableStateFlow(false)
-    val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()

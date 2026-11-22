@@ -293,7 +293,7 @@ class UsuarioViewModel(
             val ingresoValido = usuario != null
             _credencialesIncorrectas.value = !ingresoValido
             ingresoValido
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             _credencialesIncorrectas.value = true
             false
         }
