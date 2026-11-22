@@ -43,6 +43,16 @@ class UsuarioRepositoryImpl(
     override suspend fun buscarUsuarioPorCorreo(correoElectronico: String): Usuario? =
         daoUsuario.buscarUsuarioPorCorreo(correoElectronico)?.aModeloDominio()
 
+    override suspend fun refrescarUsuarioPorId(id: Long): Result<Usuario> {
+        return try {
+            val remoto = api.obtenerUsuarioPorId(id).aModeloDominio()
+            daoUsuario.actualizarUsuario(remoto.aEntidadRoom())
+            Result.success(remoto)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun guardarUsuario(usuario: Usuario): Long {
         return if (usuario.idUsuario == Usuario.ID_SIN_ASIGNAR) {
             val remoto = api.crearUsuario(usuario.aRequestDto()).aModeloDominio()

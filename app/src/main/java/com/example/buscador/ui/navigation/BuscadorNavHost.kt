@@ -260,6 +260,7 @@ fun BuscadorNavHost(
                 MiPerfilScreen(
                     usuario = usuarioActual,
                     estaCargando = estaCargandoPerfil,
+                    onRefrescar = viewModelUsuario::refrescarPerfilActual,
                     onEditarPerfil = { navController.navigate(RutaAplicacion.EditarPerfil.ruta) },
                     onIniciarSesion = {
                         navController.navigate(RutaAplicacion.Login.ruta)

@@ -24,6 +24,9 @@ interface UsuarioRepository {
     /** Busca un usuario por correo electrónico en local. */
     suspend fun buscarUsuarioPorCorreo(correoElectronico: String): Usuario?
 
+    /** Refresca un usuario desde la API por su id y actualiza la base local. */
+    suspend fun refrescarUsuarioPorId(id: Long): Result<Usuario>
+
     /** Autentica el ingreso de un usuario consultando la API remota (o local si falla). */
     suspend fun iniciarSesion(correoElectronico: String, contrasena: String): Usuario?
 

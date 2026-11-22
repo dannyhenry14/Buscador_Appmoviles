@@ -156,6 +156,17 @@ class UsuarioViewModel(
         )
 
     /**
+     * Refresca el perfil actual consultando directamente la API remota de Xano, 
+     * lo cual actualiza a su vez la base de datos local (Room) y este StateFlow.
+     */
+    fun refrescarPerfilActual() {
+        val id = usuarioActual.value?.idUsuario ?: return
+        viewModelScope.launch {
+            repositorioUsuario.refrescarUsuarioPorId(id)
+        }
+    }
+
+    /**
      * Bandera del último intento de login rechazado.
      * [validarCredenciales] la enciende cuando el correo no existe en Room o la
      * contraseña no coincide, y la UI la usa para marcar los campos del formulario

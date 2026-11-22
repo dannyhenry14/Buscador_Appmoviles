@@ -21,6 +21,9 @@ interface CenamadApi {
     @GET("usuarios")
     suspend fun obtenerUsuarios(): List<UsuarioDto>
 
+    @GET("usuarios/{usuarios_id}")
+    suspend fun obtenerUsuarioPorId(@Path("usuarios_id") id: Long): UsuarioDto
+
     @POST("usuarios")
     suspend fun crearUsuario(@Body usuario: UsuarioRequestDto): UsuarioDto
 

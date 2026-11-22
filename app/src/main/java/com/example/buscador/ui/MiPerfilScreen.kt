@@ -39,6 +39,7 @@ import com.example.buscador.ui.theme.DarkGreen
 import com.example.buscador.ui.theme.LightGrayMap
 import com.example.buscador.ui.theme.YellowDuoc
 import com.example.buscador.ui.components.BarraSuperiorSeccion
+import androidx.compose.runtime.LaunchedEffect
 import com.example.buscador.ui.components.DialogoConfirmacion
 import com.example.buscador.ui.components.FotoPerfil
 
@@ -61,6 +62,7 @@ import com.example.buscador.ui.components.FotoPerfil
  * @param usuario Usuario observado en Room; `null` cuando la sesión pertenece
  *   a un invitado (o Room aún no tiene fila), lo que activa la vista invitado.
  * @param estaCargando `true` mientras Room no entrega la primera lectura.
+ * @param onRefrescar Invocado al abrir la pantalla para sincronizar con Xano.
  * @param onEditarPerfil Navega al formulario de edición del perfil.
  * @param onIniciarSesion Navega al login para ingresar con una cuenta existente.
  * @param onRegistrarUsuario Navega al registro para crear una cuenta nueva.
@@ -73,6 +75,7 @@ import com.example.buscador.ui.components.FotoPerfil
 fun MiPerfilScreen(
     usuario: Usuario?,
     estaCargando: Boolean,
+    onRefrescar: () -> Unit,
     onEditarPerfil: () -> Unit,
     onIniciarSesion: () -> Unit,
     onRegistrarUsuario: () -> Unit,
@@ -81,6 +84,13 @@ fun MiPerfilScreen(
     onAbrirMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Al abrir la pantalla de perfil, intentamos refrescar el usuario desde Xano.
+    LaunchedEffect(usuario?.idUsuario) {
+        if (usuario != null && usuario.idUsuario > 0) {
+            onRefrescar()
+        }
+    }
+
     // Visibilidad del diálogo de cierre de sesión. Con rememberSaveable el
     // diálogo sobrevive a rotaciones, y "Cancelar" o "Confirmar" lo ocultan.
     var dialogoCierreSesionVisible by rememberSaveable { mutableStateOf(false) }
