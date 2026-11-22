@@ -1,6 +1,7 @@
 package com.example.buscador.remote
 
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -28,5 +29,6 @@ interface CenamadApi {
         @Path("usuarios_id") id: Int, 
         @Body usuario: UsuarioRequestDto
     ): UsuarioDto
-
+    @DELETE("usuarios/{usuarios_id}")
+    suspend fun eliminarUsuario(@Path("usuarios_id") id: Long): retrofit2.Response<Unit>
 }

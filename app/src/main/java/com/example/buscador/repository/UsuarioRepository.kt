@@ -36,7 +36,10 @@ interface UsuarioRepository {
     /** Actualiza únicamente la URI de la foto de perfil. */
     suspend fun actualizarFotoPerfil(idUsuario: Long, uriFotoPerfil: String?)
 
-    /** Elimina un usuario de la base local. */
+    /** Elimina un usuario de la base local y remota. */
+    suspend fun eliminarCuenta(id: Long): Result<Unit>
+
+    /** Elimina un usuario de la base local (obsoleto, prefiere eliminarCuenta). */
     suspend fun eliminarUsuario(usuario: Usuario)
 
     /** Devuelve el correo de la sesión guardada en el teléfono, o null si no hay sesión abierta. */

@@ -66,6 +66,7 @@ import com.example.buscador.ui.components.FotoPerfil
  * @param onRegistrarUsuario Navega al registro para crear una cuenta nueva.
  * @param onCerrarSesion Termina la sesión y devuelve al login; la pantalla
  *   pide confirmación con un diálogo antes de ejecutarla.
+ * @param onEliminarCuenta Elimina permanentemente la cuenta en local y remoto.
  * @param onAbrirMenu Abre el menú lateral de navegación entre secciones.
  */
 @Composable
@@ -76,12 +77,14 @@ fun MiPerfilScreen(
     onIniciarSesion: () -> Unit,
     onRegistrarUsuario: () -> Unit,
     onCerrarSesion: () -> Unit,
+    onEliminarCuenta: () -> Unit,
     onAbrirMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Visibilidad del diálogo de cierre de sesión. Con rememberSaveable el
     // diálogo sobrevive a rotaciones, y "Cancelar" o "Confirmar" lo ocultan.
     var dialogoCierreSesionVisible by rememberSaveable { mutableStateOf(false) }
+    var dialogoEliminarCuentaVisible by rememberSaveable { mutableStateOf(false) }
 
     // Cerrar sesión es una acción con consecuencias: se confirma antes de
     // ejecutarla. El toque fuera del diálogo cuenta como "Cancelar".
@@ -96,6 +99,19 @@ fun MiPerfilScreen(
                 onCerrarSesion()
             },
             onCancelar = { dialogoCierreSesionVisible = false }
+        )
+    }
+
+    if (dialogoEliminarCuentaVisible) {
+        DialogoConfirmacion(
+            titulo = "Eliminar cuenta",
+            mensaje = "¿Estás seguro de que quieres eliminar permanentemente tu cuenta? " +
+                "Esta acción no se puede deshacer.",
+            onConfirmar = {
+                dialogoEliminarCuentaVisible = false
+                onEliminarCuenta()
+            },
+            onCancelar = { dialogoEliminarCuentaVisible = false }
         )
     }
 
@@ -131,6 +147,7 @@ fun MiPerfilScreen(
                 usuario = usuario,
                 onEditarPerfil = onEditarPerfil,
                 onSolicitarCierreSesion = { dialogoCierreSesionVisible = true },
+                onSolicitarEliminarCuenta = { dialogoEliminarCuentaVisible = true },
                 modifier = Modifier.padding(paddingInterno)
             )
         }
@@ -227,6 +244,7 @@ private fun ContenidoPerfil(
     usuario: Usuario,
     onEditarPerfil: () -> Unit,
     onSolicitarCierreSesion: () -> Unit,
+    onSolicitarEliminarCuenta: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val nombreVisible = usuario.nombreCompleto.trim()
@@ -312,6 +330,23 @@ private fun ContenidoPerfil(
         ) {
             Text(
                 text = "Cerrar sesión",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        OutlinedButton(
+            onClick = onSolicitarEliminarCuenta,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+            border = BorderStroke(width = 1.dp, color = Color.Red),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Text(
+                text = "Eliminar cuenta",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )

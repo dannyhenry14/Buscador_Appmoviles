@@ -88,6 +88,25 @@ class UsuarioRepositoryImpl(
         daoUsuario.actualizarUriFotoPerfil(idUsuario = idUsuario, uriFotoPerfil = uriFotoPerfil)
     }
 
+    override suspend fun eliminarCuenta(id: Long): Result<Unit> {
+        return try {
+            val response = api.eliminarUsuario(id)
+            if (response.isSuccessful || response.code() == 404) {
+                // Borramos en local y limpiamos sesión
+                val usuarioLocal = daoUsuario.buscarUsuarioPorCorreo(almacenSesion.leerCorreoSesion() ?: "")
+                if (usuarioLocal != null && usuarioLocal.idUsuario == id) {
+                    daoUsuario.eliminarUsuario(usuarioLocal)
+                }
+                almacenSesion.borrarSesion()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Error en API: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun eliminarUsuario(usuario: Usuario) {
         daoUsuario.eliminarUsuario(usuario.aEntidadRoom())
     }

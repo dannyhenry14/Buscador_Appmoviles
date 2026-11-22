@@ -396,6 +396,21 @@ class UsuarioViewModel(
     }
 
     /**
+     * Elimina la cuenta del usuario autenticado (tanto remota como local).
+     */
+    fun eliminarCuentaActual() {
+        val id = usuarioActual.value?.idUsuario ?: return
+        viewModelScope.launch {
+            val result = repositorioUsuario.eliminarCuenta(id)
+            if (result.isSuccess) {
+                cerrarSesion()
+            } else {
+                _estadoEdicion.value = EstadoEdicionPerfil.Error("No se pudo eliminar la cuenta.")
+            }
+        }
+    }
+
+    /**
      * Registra una cuenta nueva en Room.
      *
      * Vuelve a validar los tres campos (defensa en profundidad aunque la pantalla

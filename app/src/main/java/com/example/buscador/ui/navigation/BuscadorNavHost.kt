@@ -268,13 +268,16 @@ fun BuscadorNavHost(
                         navController.navigate(RutaAplicacion.Registro.ruta)
                     },
                     onCerrarSesion = {
-                        // Confirmado el diálogo: la sesión termina en el ViewModel
-                        // y el grafo vuelve a nacer en el login. popUpTo sobre el
-                        // propio grafo limpia todo el back stack, de modo que
-                        // "Atrás" no regrese a las secciones de la sesión cerrada.
                         viewModelUsuario.cerrarSesion()
                         navController.navigate(RutaAplicacion.Login.ruta) {
-                            popUpTo(navController.graph.id) { inclusive = true }
+                            popUpTo(RutaAplicacion.Login.ruta) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onEliminarCuenta = {
+                        viewModelUsuario.eliminarCuentaActual()
+                        navController.navigate(RutaAplicacion.Login.ruta) {
+                            popUpTo(RutaAplicacion.Login.ruta) { inclusive = true }
                             launchSingleTop = true
                         }
                     },
