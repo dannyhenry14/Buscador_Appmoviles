@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
@@ -138,6 +140,33 @@ fun DetalleEventoScreen(
                         fontSize = 15.sp,
                         color = Color.DarkGray
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Ubicación en el mapa",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkGreen
+                    )
+                    
+                    val coords = com.example.buscador.ui.components.obtenerCoordenadasPorUbicacion(evento.ubicacion)
+                    com.example.buscador.ui.components.MapaGoogleWebView(
+                        latitud = coords.first,
+                        longitud = coords.second,
+                        zoom = 16,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    com.example.buscador.ui.components.BotonAbrirGoogleMaps(
+                        latitud = coords.first,
+                        longitud = coords.second,
+                        texto = "Abrir en Google Maps"
+                    )
+
                     Spacer(modifier = Modifier.height(24.dp))
                     // Acción de ejemplo: aquí se conectará la inscripción cuando exista backend.
                     Button(
