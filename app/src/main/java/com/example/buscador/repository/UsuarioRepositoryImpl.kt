@@ -6,16 +6,21 @@ import com.example.buscador.model.aModeloDominio
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+import com.example.buscador.remote.CenamadApi
+import com.example.buscador.remote.aModeloDominio
+import com.example.buscador.remote.aRequestDto
+
 /**
- * Implementación concreta de [UsuarioRepository] respaldada por Room.
+ * Implementación concreta de [UsuarioRepository] respaldada por Xano y Room.
  *
  * Responsabilidades:
- * - Traducir entidades de Room a modelos de dominio y viceversa.
+ * - Traducir entidades de Room/API a modelos de dominio y viceversa.
  * - Decidir si una escritura es INSERT o UPDATE (según el id del usuario).
  * - Delegar en [AlmacenSesion] el guardado de la sesión abierta.
  * No contiene lógica de UI ni de estado: eso pertenece al ViewModel.
  */
 class UsuarioRepositoryImpl(
+    private val api: CenamadApi,
     private val daoUsuario: UsuarioDao,
     private val almacenSesion: AlmacenSesion
 ) : UsuarioRepository {
@@ -39,13 +44,43 @@ class UsuarioRepositoryImpl(
         daoUsuario.buscarUsuarioPorCorreo(correoElectronico)?.aModeloDominio()
 
     override suspend fun guardarUsuario(usuario: Usuario): Long {
-        // id 0 significa "aún no persistido": Room asigna la clave primaria.
-        // Cualquier otro id corresponde a una fila existente que se actualiza.
         return if (usuario.idUsuario == Usuario.ID_SIN_ASIGNAR) {
-            daoUsuario.insertarUsuario(usuario.aEntidadRoom())
+            val remoto = api.crearUsuario(usuario.aRequestDto()).aModeloDominio()
+            val id = daoUsuario.insertarUsuario(remoto.aEntidadRoom())
+            almacenSesion.guardarCorreoSesion(remoto.correoElectronico)
+            id
         } else {
-            daoUsuario.actualizarUsuario(usuario.aEntidadRoom())
-            usuario.idUsuario
+            val remoto = api.actualizarUsuario(usuario.idUsuario.toInt(), usuario.aRequestDto()).aModeloDominio()
+            daoUsuario.actualizarUsuario(remoto.aEntidadRoom())
+            remoto.idUsuario
+        }
+    }
+
+    override suspend fun iniciarSesion(correoElectronico: String, contrasena: String): Usuario? {
+        try {
+            val remotos = api.obtenerUsuarios()
+            val usuarioEncontrado = remotos.find {
+                it.correoElectronico.equals(correoElectronico, ignoreCase = true) && it.contrasena == contrasena
+            }?.aModeloDominio()
+            
+            if (usuarioEncontrado != null) {
+                val existeLocal = daoUsuario.buscarUsuarioPorCorreo(correoElectronico)
+                if (existeLocal != null) {
+                    daoUsuario.actualizarUsuario(usuarioEncontrado.aEntidadRoom())
+                } else {
+                    daoUsuario.insertarUsuario(usuarioEncontrado.aEntidadRoom())
+                }
+                almacenSesion.guardarCorreoSesion(usuarioEncontrado.correoElectronico)
+                return usuarioEncontrado
+            }
+            return null
+        } catch (e: Exception) {
+            val local = daoUsuario.buscarUsuarioPorCorreo(correoElectronico)?.aModeloDominio()
+            if (local != null && local.contrasena == contrasena) {
+                almacenSesion.guardarCorreoSesion(local.correoElectronico)
+                return local
+            }
+            throw e
         }
     }
 

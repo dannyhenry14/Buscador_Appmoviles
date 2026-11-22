@@ -23,14 +23,21 @@ class ContenedorAplicacion(contexto: Context) {
     /** Almacén de la sesión abierta; recuerda el correo del usuario aunque se cierre la app. */
     private val almacenSesion: AlmacenSesion = AlmacenSesion(contexto)
 
-    /** Repositorio de usuarios respaldado por Room y por el almacén de sesión. */
+    /** API de Xano configurada mediante Retrofit. */
+    val cenamadApi = com.example.buscador.remote.RetrofitClient.api
+    
+    /** API de Open-Meteo configurada mediante Retrofit. */
+    val climaApi = com.example.buscador.remote.ClimaRetrofitClient.api
+
+    /** Repositorio de clima respaldado por Open-Meteo. */
+    val repositorioClima: com.example.buscador.repository.ClimaRepository = com.example.buscador.repository.ClimaRepositoryImpl(climaApi)
+
+    /** Repositorio de usuarios respaldado por Room, Almacén y Xano. */
     val repositorioUsuario: UsuarioRepository = UsuarioRepositoryImpl(
+        api = cenamadApi,
         daoUsuario = baseDeDatos.usuarioDao(),
         almacenSesion = almacenSesion
     )
-
-    /** API de Xano configurada mediante Retrofit. */
-    val cenamadApi = com.example.buscador.remote.RetrofitClient.api
 
     /** Repositorio de eventos respaldado por la API de Xano. */
     val repositorioEvento: EventoRepository = com.example.buscador.repository.EventoRepositoryRemoto(cenamadApi)

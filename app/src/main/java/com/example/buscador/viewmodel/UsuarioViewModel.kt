@@ -271,16 +271,21 @@ class UsuarioViewModel(
      */
     suspend fun validarCredenciales(correoElectronico: String, contrasena: String): Boolean {
         val correoNormalizado = correoElectronico.trim().lowercase(Locale.ROOT)
-        val usuarioRegistrado = if (correoNormalizado.isBlank()) {
-            null
-        } else {
-            repositorioUsuario.buscarUsuarioPorCorreo(correoNormalizado)
+        val contrasenaLimpia = contrasena.trim()
+        if (correoNormalizado.isBlank() || contrasenaLimpia.isBlank()) {
+            _credencialesIncorrectas.value = true
+            return false
         }
-        val ingresoValido = usuarioRegistrado != null &&
-                usuarioRegistrado.contrasena.isNotBlank() &&
-                usuarioRegistrado.contrasena == contrasena.trim()
-        _credencialesIncorrectas.value = !ingresoValido
-        return ingresoValido
+        
+        return try {
+            val usuario = repositorioUsuario.iniciarSesion(correoNormalizado, contrasenaLimpia)
+            val ingresoValido = usuario != null
+            _credencialesIncorrectas.value = !ingresoValido
+            ingresoValido
+        } catch (e: Exception) {
+            _credencialesIncorrectas.value = true
+            false
+        }
     }
 
     /** Apaga el error de credenciales; se invoca al editar los campos del login. */
@@ -451,6 +456,10 @@ class UsuarioViewModel(
                     estaRegistrando = false,
                     mensajeError = when (error) {
                         is SQLiteConstraintException -> MENSAJE_CORREO_DUPLICADO
+                        is retrofit2.HttpException -> {
+                            if (error.code() == 400) MENSAJE_CORREO_DUPLICADO else MENSAJE_ERROR_REGISTRO_GENERICO
+                        }
+                        is java.io.IOException -> "No hay conexión a internet. Verifica tu red."
                         else -> MENSAJE_ERROR_REGISTRO_GENERICO
                     }
                 )
@@ -469,8 +478,11 @@ class UsuarioViewModel(
 
     /** Traduce excepciones técnicas a mensajes comprensibles para el usuario. */
     private fun mensajeDeError(error: Throwable): String = when (error) {
-        // El índice único de correo impide duplicados; Room lanza al intentar escribirlo.
         is SQLiteConstraintException -> MENSAJE_CORREO_DUPLICADO
+        is retrofit2.HttpException -> {
+            if (error.code() == 400) MENSAJE_CORREO_DUPLICADO else "Error de servidor: ${error.message}"
+        }
+        is java.io.IOException -> "No hay conexión a internet. Verifica tu red."
         else -> MENSAJE_ERROR_GENERICO
     }
 

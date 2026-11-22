@@ -194,8 +194,11 @@ fun BuscadorNavHost(
             }
 
             composable(route = RutaAplicacion.Eventos.ruta) {
+                val climaActual by viewModelEventos.clima.collectAsStateWithLifecycle()
+                
                 EventosScreen(
                     listaEventos = listaEventos,
+                    climaActual = climaActual,
                     onAbrirDetalleEvento = { idEvento ->
                         navController.navigate(RutaAplicacion.DetalleEvento.crearRuta(idEvento))
                     },

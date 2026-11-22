@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.example.buscador.repository.ClimaRepository
 
 /**
  * ViewModel de eventos (pantalla Home y detalle).
@@ -22,7 +23,8 @@ import kotlinx.coroutines.launch
  * la navegación entrega el id como argumento.
  */
 class EventosViewModel(
-    private val repositorioEvento: EventoRepository
+    private val repositorioEvento: EventoRepository,
+    private val repositorioClima: ClimaRepository
 ) : ViewModel() {
 
     /** Listado de eventos publicado a la UI; inmutable desde fuera del ViewModel. */
@@ -35,8 +37,18 @@ class EventosViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _clima = MutableStateFlow<com.example.buscador.model.ClimaActual?>(null)
+    val clima: StateFlow<com.example.buscador.model.ClimaActual?> = _clima.asStateFlow()
+
     init {
         cargarTodosLosEventos()
+        cargarClimaActual()
+    }
+    
+    private fun cargarClimaActual() {
+        viewModelScope.launch {
+            _clima.value = repositorioClima.obtenerClimaSantiago()
+        }
     }
 
     /**
@@ -102,7 +114,10 @@ class EventosViewModel(
             initializer {
                 val aplicacion = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
                         as BuscadorApplication
-                EventosViewModel(aplicacion.contenedorAplicacion.repositorioEvento)
+                EventosViewModel(
+                    repositorioEvento = aplicacion.contenedorAplicacion.repositorioEvento,
+                    repositorioClima = aplicacion.contenedorAplicacion.repositorioClima
+                )
             }
         }
     }

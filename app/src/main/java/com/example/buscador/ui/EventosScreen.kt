@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.buscador.model.ClimaActual
 import com.example.buscador.model.CategoriaEvento
 import com.example.buscador.model.Evento
 import com.example.buscador.ui.theme.DarkGreen
@@ -71,6 +72,7 @@ import com.example.buscador.ui.components.HojaFiltros
  * [onBuscar], para que el ViewModel filtre el listado.
  *
  * @param listaEventos Eventos observados desde [com.example.buscador.viewmodel.EventosViewModel].
+ * @param climaActual Clima observado en la ciudad (Santiago) o null si falla la carga.
  * @param onAbrirDetalleEvento Navega al detalle del evento seleccionado.
  * @param onAbrirMenu Abre el menú lateral de navegación entre secciones.
  * @param onBuscar Avisa que cambió algún filtro; entrega texto, categoría y rango de fechas.
@@ -78,6 +80,7 @@ import com.example.buscador.ui.components.HojaFiltros
 @Composable
 fun EventosScreen(
     listaEventos: List<Evento>,
+    climaActual: ClimaActual?,
     onAbrirDetalleEvento: (idEvento: Long) -> Unit,
     onAbrirMenu: () -> Unit,
     onBuscar: (String, CategoriaEvento?, Long?, Long?) -> Unit,
@@ -159,6 +162,14 @@ fun EventosScreen(
                     onClick = { mostrarFiltros = true }
                 )
             }
+            
+            // Tarjeta de clima actual en Santiago, mostrada si está disponible.
+            if (climaActual != null) {
+                TarjetaClima(clima = climaActual, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
             if (listaEventos.isEmpty()) {
                 // Estado vacío explícito: la UI nunca debe quedar en blanco sin explicación.
                 Box(
@@ -311,6 +322,56 @@ private fun TarjetaEvento(
                     fontSize = 14.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Tarjeta compacta que muestra la información meteorológica actual.
+ */
+@Composable
+private fun TarjetaClima(
+    clima: ClimaActual,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = DarkGreen
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "Santiago, Chile",
+                    color = White.copy(alpha = 0.8f),
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "${clima.temperatura}°C",
+                    color = White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = clima.condicion,
+                    color = White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Viento: ${clima.viento} km/h",
+                    color = White.copy(alpha = 0.8f),
+                    fontSize = 12.sp
                 )
             }
         }

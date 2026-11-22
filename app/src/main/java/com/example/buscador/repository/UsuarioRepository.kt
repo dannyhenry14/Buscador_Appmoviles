@@ -21,8 +21,11 @@ interface UsuarioRepository {
     /** Observa reactivamente al usuario de un correo; es la fila de la sesión activa. */
     fun observarUsuarioPorCorreo(correoElectronico: String): Flow<Usuario?>
 
-    /** Busca un usuario por correo electrónico. */
+    /** Busca un usuario por correo electrónico en local. */
     suspend fun buscarUsuarioPorCorreo(correoElectronico: String): Usuario?
+
+    /** Autentica el ingreso de un usuario consultando la API remota (o local si falla). */
+    suspend fun iniciarSesion(correoElectronico: String, contrasena: String): Usuario?
 
     /**
      * Inserta o actualiza un usuario según su id.
