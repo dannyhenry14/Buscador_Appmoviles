@@ -13,10 +13,10 @@ import com.example.buscador.model.CategoriaEvento
 interface EventoRepository {
 
     /** Devuelve el listado completo de eventos disponibles. */
-    fun obtenerTodosLosEventos(): List<Evento>
+    suspend fun obtenerTodosLosEventos(): List<Evento>
 
     /** Busca un evento por su identificador; null si no existe. */
-    fun obtenerEventoPorId(idEvento: Long): Evento?
+    suspend fun obtenerEventoPorId(idEvento: Long): Evento?
 
 
     /**
@@ -28,7 +28,7 @@ interface EventoRepository {
      * @param fechaDesdeMillis Fecha mínima del evento (inclusive); null no pone límite.
      * @param fechaHastaMillis Fecha máxima del evento (inclusive); null no pone límite.
      */
-    fun buscarEventos(
+    suspend fun buscarEventos(
         texto: String,
         categoria: CategoriaEvento?,
         fechaDesdeMillis: Long?,

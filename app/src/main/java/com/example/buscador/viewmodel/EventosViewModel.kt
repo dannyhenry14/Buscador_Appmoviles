@@ -8,9 +8,11 @@ import com.example.buscador.BuscadorApplication
 import com.example.buscador.repository.EventoRepository
 import com.example.buscador.model.CategoriaEvento
 import com.example.buscador.model.Evento
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel de eventos (pantalla Home y detalle).
@@ -24,15 +26,46 @@ class EventosViewModel(
 ) : ViewModel() {
 
     /** Listado de eventos publicado a la UI; inmutable desde fuera del ViewModel. */
-    private val _listaEventos = MutableStateFlow(repositorioEvento.obtenerTodosLosEventos())
+    private val _listaEventos = MutableStateFlow<List<Evento>>(emptyList())
     val listaEventos: StateFlow<List<Evento>> = _listaEventos.asStateFlow()
 
+    private val _cargando = MutableStateFlow(false)
+    val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    init {
+        cargarTodosLosEventos()
+    }
+
     /**
-     * Devuelve el evento solicitado por la ruta de navegación.
-     * @return el evento o null cuando el id no existe (ruta manipulada o dato eliminado).
+     * Carga todos los eventos de la API inicializando la pantalla.
      */
-    fun obtenerEventoPorId(idEvento: Long): Evento? =
-        repositorioEvento.obtenerEventoPorId(idEvento)
+    fun cargarTodosLosEventos() {
+        viewModelScope.launch {
+            _cargando.value = true
+            _error.value = null
+            try {
+                _listaEventos.value = repositorioEvento.obtenerTodosLosEventos()
+            } catch (e: Exception) {
+                _error.value = "No se pudieron cargar los eventos: ${e.message}"
+                _listaEventos.value = emptyList()
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+
+    /**
+     * Devuelve el evento solicitado buscando en el listado cargado en memoria.
+     * Al usar API remota, los eventos ya se descargaron al entrar a la pantalla principal.
+     *
+     * @return el evento o null cuando el id no existe.
+     */
+    fun obtenerEventoPorId(idEvento: Long): Evento? {
+        return _listaEventos.value.firstOrNull { it.idEvento == idEvento }
+    }
 
     /**
      * Aplica los filtros de búsqueda y publica el resultado a la UI.
@@ -44,12 +77,23 @@ class EventosViewModel(
         fechaDesdeMillis: Long?,
         fechaHastaMillis: Long?
     ) {
-        _listaEventos.value = repositorioEvento.buscarEventos(
-            texto = texto,
-            categoria = categoria,
-            fechaDesdeMillis = fechaDesdeMillis,
-            fechaHastaMillis = fechaHastaMillis
-        )
+        viewModelScope.launch {
+            _cargando.value = true
+            _error.value = null
+            try {
+                _listaEventos.value = repositorioEvento.buscarEventos(
+                    texto = texto,
+                    categoria = categoria,
+                    fechaDesdeMillis = fechaDesdeMillis,
+                    fechaHastaMillis = fechaHastaMillis
+                )
+            } catch (e: Exception) {
+                _error.value = "Error al buscar eventos: ${e.message}"
+                _listaEventos.value = emptyList()
+            } finally {
+                _cargando.value = false
+            }
+        }
     }
 
     companion object {

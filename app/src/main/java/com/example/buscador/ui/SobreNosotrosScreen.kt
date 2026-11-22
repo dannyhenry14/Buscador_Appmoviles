@@ -84,7 +84,7 @@ fun SobreNosotrosScreen(
 
             // Fotografía ilustrativa de las instalaciones del centro.
             Image(
-                painter = painterResource(id = R.drawable.img_laboratorio),
+                painter = painterResource(id = R.drawable.img_seminario),
                 contentDescription = "Laboratorios de investigación de CENAMAD",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

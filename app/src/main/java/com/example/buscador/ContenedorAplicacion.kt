@@ -5,7 +5,6 @@ import com.example.buscador.repository.AlmacenFotosPerfil
 import com.example.buscador.repository.AlmacenSesion
 import com.example.buscador.repository.BuscadorDatabase
 import com.example.buscador.repository.EventoRepository
-import com.example.buscador.repository.EventoRepositoryEnMemoria
 import com.example.buscador.repository.UsuarioRepository
 import com.example.buscador.repository.UsuarioRepositoryImpl
 
@@ -30,8 +29,11 @@ class ContenedorAplicacion(contexto: Context) {
         almacenSesion = almacenSesion
     )
 
-    /** Repositorio de eventos; por ahora en memoria, intercambiable por Room/API. */
-    val repositorioEvento: EventoRepository = EventoRepositoryEnMemoria()
+    /** API de Xano configurada mediante Retrofit. */
+    val cenamadApi = com.example.buscador.remote.RetrofitClient.api
+
+    /** Repositorio de eventos respaldado por la API de Xano. */
+    val repositorioEvento: EventoRepository = com.example.buscador.repository.EventoRepositoryRemoto(cenamadApi)
 
     /** Almacén de fotos de perfil; instancia única porque solo retiene el contexto. */
     val almacenFotosPerfil: AlmacenFotosPerfil = AlmacenFotosPerfil(contexto)

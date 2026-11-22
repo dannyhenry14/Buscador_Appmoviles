@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import coil3.compose.AsyncImage
+import com.example.buscador.R
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -89,16 +92,16 @@ fun DetalleEventoScreen(
             ) {
                 // Cabecera a sangre completa: ocupa todo el ancho de la pantalla
                 // con proporción panorámica 16:9 y recorte centrado (Crop).
-                if (evento.imagenResId != 0) {
-                    Image(
-                        painter = painterResource(id = evento.imagenResId),
-                        contentDescription = "Imagen del evento ${evento.titulo}",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(ratio = 16f / 9f),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                AsyncImage(
+                    model = evento.imagenUrl ?: R.drawable.img_seminario,
+                    contentDescription = "Imagen del evento ${evento.titulo}",
+                    error = painterResource(R.drawable.img_seminario),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(ratio = 16f / 9f)
+                        .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant),
+                    contentScale = ContentScale.Crop
+                )
                 Column(
                     modifier = Modifier.padding(all = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(space = 12.dp)

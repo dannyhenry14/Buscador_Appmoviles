@@ -1,6 +1,8 @@
 package com.example.buscador.ui
 
 import androidx.compose.foundation.Image
+import coil3.compose.AsyncImage
+import com.example.buscador.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -280,16 +282,16 @@ private fun TarjetaEvento(
             // Imagen a sangre completa en la cabecera de la tarjeta: el Surface
             // del Card recorta sus esquinas superiores con la forma redondeada.
             // Alto fijo + ContentScale.Crop para uniformidad en todo el listado.
-            if (evento.imagenResId != 0) {
-                Image(
-                    painter = painterResource(id = evento.imagenResId),
-                    contentDescription = "Imagen del evento ${evento.titulo}",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(height = 160.dp),
-                    contentScale = ContentScale.Crop
-                )
-            }
+            AsyncImage(
+                model = evento.imagenUrl ?: R.drawable.img_seminario,
+                contentDescription = "Imagen del evento ${evento.titulo}",
+                error = painterResource(R.drawable.img_seminario),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height = 160.dp)
+                    .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant),
+                contentScale = ContentScale.Crop
+            )
             Column(modifier = Modifier.padding(all = 16.dp)) {
                 Text(
                     text = evento.titulo,

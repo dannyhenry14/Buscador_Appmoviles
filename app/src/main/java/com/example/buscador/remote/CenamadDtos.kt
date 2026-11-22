@@ -5,11 +5,6 @@ import com.example.buscador.model.Evento
 import com.example.buscador.model.Usuario
 import com.google.gson.annotations.SerializedName
 
-/** Representa el objeto de imagen devuelto por Xano. */
-data class XanoImageDto(
-    @SerializedName("url") val url: String?
-)
-
 /** DTO para la lectura de eventos desde Xano. */
 data class EventoDto(
     @SerializedName("id") val id: Int,
@@ -19,7 +14,7 @@ data class EventoDto(
     @SerializedName("fecha") val fecha: String,
     @SerializedName("ubicacion") val ubicacion: String,
     @SerializedName("categoria") val categoria: String,
-    @SerializedName("imagen") val imagen: XanoImageDto?
+    @SerializedName("imagen") val imagen: String? = null
 )
 
 /** DTO para la lectura de usuarios desde Xano. */
@@ -61,7 +56,7 @@ fun EventoDto.aModeloDominio(): Evento {
         ubicacion = ubicacion,
         categoria = categoriaEnum,
         imagenResId = 0, // Las imágenes remotas no usan ID de recurso local
-        imagenUrl = imagen?.url
+        imagenUrl = imagen
     )
 }
 
