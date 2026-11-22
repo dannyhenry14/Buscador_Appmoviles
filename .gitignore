@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Permitir explícitamente el keystore y el APK firmado
+!app/keystore.jks
+!app/release/
+!app/release/app-release.apk

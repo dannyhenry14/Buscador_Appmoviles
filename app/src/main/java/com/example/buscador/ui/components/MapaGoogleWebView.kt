@@ -102,7 +102,7 @@ fun BotonAbrirGoogleMaps(
                 val uri = Uri.parse("geo:$latitud,$longitud?q=$latitud,$longitud")
                 val intent = Intent(Intent.ACTION_VIEW, uri)
                 context.startActivity(intent)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 Toast.makeText(context, "No hay aplicación de mapas instalada", Toast.LENGTH_SHORT).show()
             }
         },

@@ -26,8 +26,18 @@ android {
         unitTests.isReturnDefaultValues = true
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore.jks")
+            storePassword = "cenamad2026"
+            keyAlias = "cenamad_key"
+            keyPassword = "cenamad2026"
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             optimization {
                 enable = false
             }

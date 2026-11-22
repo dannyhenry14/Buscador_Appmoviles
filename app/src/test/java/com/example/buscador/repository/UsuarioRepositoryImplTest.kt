@@ -4,7 +4,6 @@ import com.example.buscador.model.Usuario
 import com.example.buscador.model.UsuarioEntity
 import com.example.buscador.remote.CenamadApi
 import com.example.buscador.remote.UsuarioDto
-import com.example.buscador.remote.UsuarioRequestDto
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -151,7 +150,7 @@ class UsuarioRepositoryImplTest {
         var lanzoExcepcion = false
         try {
             repositorio.iniciarSesion("test@test.com", "malapass")
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             lanzoExcepcion = true
         }
         assertTrue(lanzoExcepcion)

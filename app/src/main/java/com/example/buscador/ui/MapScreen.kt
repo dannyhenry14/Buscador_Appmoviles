@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.buscador.model.Evento
 import com.example.buscador.ui.components.BarraSuperiorSeccion
 import com.example.buscador.ui.components.MapaGoogleWebView
 import com.example.buscador.ui.components.BotonAbrirGoogleMaps
